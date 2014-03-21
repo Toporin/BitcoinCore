@@ -1,0 +1,4 @@
+BitcoinCore
+===========
+
+Bitcoin client library
