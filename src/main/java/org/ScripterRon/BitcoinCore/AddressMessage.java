@@ -114,12 +114,14 @@ public class AddressMessage {
      *
      * @param       msg                     Message
      * @param       inStream                Message data stream
+     * @param       invHandler              Inventory handler
      * @return                              Peer address list
      * @throws      EOFException            Serialized byte stream is too short
      * @throws      IOException             Error reading from input stream
      * @throws      VerificationException   Message contains more than 1000 entries
      */
-    public static List<PeerAddress> processAddressMessage(Message msg, ByteArrayInputStream inStream)
+    public static List<PeerAddress> processAddressMessage(Message msg, ByteArrayInputStream inStream,
+                                            InventoryHandler invHandler)
                                             throws EOFException, IOException, VerificationException {
         byte[] bytes = new byte[30];
         byte[] addr4Bytes = new byte[4];
