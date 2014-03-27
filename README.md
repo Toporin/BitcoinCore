@@ -3,7 +3,7 @@ BitcoinCore
 
 BitcoinCore is a library of support routines for the bitcoin protocol.  It handles elliptic curve signature operations and message encoding/decoding.
 
-A compiled version is available here: https://drive.google.com/folderview?id=0B1312_6UqRHPYjUtbU1hdW9VMW8&usp=sharing.  Download the desired archive file and extract the files to a directory of your choice.  If you are building from the source, the dependent jar files can also be obtained here.
+A compiled version is available here: https://drive.google.com/folderview?id=0B1312_6UqRHPYjUtbU1hdW9VMW8&usp=sharing.  Download the desired archive file and extract the files to a directory of your choice.  If you are building from the source, the dependent jar files can also be obtained here.  The files are signed with the GPG key for Ronald.Hoffman6@gmail.com (D6190F05).
 
 
 Build
@@ -16,3 +16,11 @@ Here are the steps for a manual build.  You will need to install Maven 3 and Jav
   - Create the executable: mvn clean install
   - [Optional] Create the documentation: mvn javadoc:javadoc
   - [Optional] Copy target/BitcoinCore-v.r.jar to wherever you want to store the library.
+
+  
+Usage Notes
+===========
+
+BitcoinCore provides a combined jar (BitcoinCore-n.n.jar) containing BitcoinCore and BouncyCastle and the original jar (original-BitcoinCore-n.n.jar) containing just BitcoinCore.  If you don't need to use any of the BouncyCastle routines in your application, you should use the combined jar since that bundles everything together into a single file.  However, if you need BouncyCastle routines that are not included in the combined jar or you need a later version, you should use the original jar containing just BitcoinCore and provide the BouncyCastle routines in a separate jar (the minimum BouncyCastle version is listed in the BitcoinCore POM).
+
+You must call NetParams.configure() before you call any other BitcoinCore routine.  This initializes the library data areas for the specified network (production or test).

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.ScripterRon</groupId>
     <artifactId>BitcoinCore</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -12,8 +12,7 @@
     </properties>
     <name>Java Bitcoin Core Library</name>
     <url>https://github.com/ScripterRon/BitcoinCore</url>
-    <description>BitcoinCore is a collection of support routines used to implement
-	             the bitcoin protocol.
+    <description>BitcoinCore is a collection of support routines used to implement the bitcoin protocol.
     </description>
     <licenses>
         <license>

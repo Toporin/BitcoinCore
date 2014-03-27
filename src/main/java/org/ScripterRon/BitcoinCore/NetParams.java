@@ -15,7 +15,12 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.InputStream;
+import java.io.IOException;
+
 import java.math.BigInteger;
+
+import java.util.Properties;
 
 /**
  * Network-specific parameters
@@ -28,14 +33,14 @@ public class NetParams {
     /** Minimum acceptable protocol version (Bloom Filter support requires 70001 or later) */
     public static final int MIN_PROTOCOL_VERSION = 70001;
 
-    /** Services */
+    /** Peer provides network services */
     public static final long NODE_NETWORK = 1;
 
     /** Our supported services */
     public static final long SUPPORTED_SERVICES = 0;
 
     /** Library identifier */
-    public static final String LIBRARY_NAME = "/BitcoinCore:1.0/";
+    public static String LIBRARY_NAME = "BitcoinCore:?.?";
 
     /** Production network magic number */
     public static final long MAGIC_NUMBER_PRODNET = 0xd9b4bef9L;
@@ -44,7 +49,7 @@ public class NetParams {
     public static final long MAGIC_NUMBER_TESTNET = 0xdab5bffaL;
 
     /** Magic number */
-    public static long MAGIC_NUMBER;
+    public static long MAGIC_NUMBER = MAGIC_NUMBER_PRODNET;
 
     /** Production network address version */
     public static final int ADDRESS_VERSION_PRODNET = 0;
@@ -53,7 +58,7 @@ public class NetParams {
     public static final int ADDRESS_VERSION_TESTNET = 111;
 
     /** Address version */
-    public static int ADDRESS_VERSION;
+    public static int ADDRESS_VERSION = ADDRESS_VERSION_PRODNET;
 
     /** Production network dumped private key version */
     public static final int DUMPED_PRIVATE_KEY_VERSION_PRODNET = 128;
@@ -62,7 +67,7 @@ public class NetParams {
     public static final int DUMPED_PRIVATE_KEY_VERSION_TESTNET = 239;
 
     /** Dumped private key version */
-    public static int DUMPED_PRIVATE_KEY_VERSION;
+    public static int DUMPED_PRIVATE_KEY_VERSION = DUMPED_PRIVATE_KEY_VERSION_PRODNET;
 
     /** Production network maximum target difficulty */
     public static final long MAX_DIFFICULTY_PRODNET = 0x1d00ffffL;
@@ -71,10 +76,10 @@ public class NetParams {
     public static final long MAX_DIFFICULTY_TESTNET = 0x207fffffL;
 
     /** Maximum target difficulty (represents least amount of work) */
-    public static long MAX_TARGET_DIFFICULTY;
+    public static long MAX_TARGET_DIFFICULTY = MAX_DIFFICULTY_PRODNET;
 
     /** Proof-of-work limit */
-    public static BigInteger PROOF_OF_WORK_LIMIT;
+    public static BigInteger PROOF_OF_WORK_LIMIT = Utils.decodeCompactBits(MAX_DIFFICULTY_PRODNET);
 
     /** Maximum clock drift in seconds */
     public static final long ALLOWED_TIME_DRIFT = 2 * 60 * 60;
@@ -88,7 +93,7 @@ public class NetParams {
                     "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206";
 
     /** Genesis block hash */
-    public static String GENESIS_BLOCK_HASH;
+    public static String GENESIS_BLOCK_HASH = GENESIS_BLOCK_PRODNET;
 
     /** Production network genesis block time */
     public static final long GENESIS_TIME_PRODNET = 0x495fab29L;
@@ -97,7 +102,7 @@ public class NetParams {
     public static final long GENESIS_TIME_TESTNET = 1296688602L;
 
     /** Genesis block time */
-    public static long GENESIS_BLOCK_TIME;
+    public static long GENESIS_BLOCK_TIME = GENESIS_TIME_PRODNET;
 
     /** Maximum block size */
     public static final int MAX_BLOCK_SIZE = 1*1024*1024;
@@ -108,20 +113,40 @@ public class NetParams {
     /** Maximum amount of money in the Bitcoin system */
     public static final BigInteger MAX_MONEY = new BigInteger("2100000000000000", 10);
 
-    /** Inventory vector types */
+    /** Inventory error code */
     public static final int INV_ERROR = 0;
+    
+    /** Transaction inventory item */
     public static final int INV_TX = 1;
+    
+    /** Block inventory item */
     public static final int INV_BLOCK = 2;
+    
+    /** Filtered block inventory item */
     public static final int INV_FILTERED_BLOCK = 3;
 
-    /** Rejection reason codes */
+    /** Malformed message */
     public static final int REJECT_MALFORMED = 0x01;
+    
+    /** Invalid message */
     public static final int REJECT_INVALID = 0x10;
+    
+    /** Obsolete message */
     public static final int REJECT_OBSOLETE = 0x11;
+    
+    /** Duplicate transaction */
     public static final int REJECT_DUPLICATE = 0x12;
+    
+    /** Non-standard transaction */
     public static final int REJECT_NONSTANDARD = 0x40;
+    
+    /** Dust transaction */
     public static final int REJECT_DUST = 0x41;
+    
+    /** Insufficient fee provided */
     public static final int REJECT_INSUFFICIENT_FEE = 0x42;
+    
+    /** Block checkpoint mismatch */
     public static final int REJECT_CHECKPOINT = 0x43;
 
     /**
@@ -130,9 +155,14 @@ public class NetParams {
      * The configure() method must be called before using any of the BitcoinCore
      * library routines.
      *
-     * @param       testNetwork         TRUE for the test network, FALSE for the production network
+     * @param       testNetwork             TRUE for the test network, FALSE for the production network
+     * @throws      ClassNotFoundException  org.ScripterRon.BitcoinCore.NetParams class not found
+     * @throws      IOException             Unable read application properties
      */
-    public static void configure(boolean testNetwork) {
+    public static void configure(boolean testNetwork) throws ClassNotFoundException, IOException {
+        //
+        // Initialize data arreas for the desired network
+        //
         if (testNetwork) {
             MAGIC_NUMBER = MAGIC_NUMBER_TESTNET;
             ADDRESS_VERSION = ADDRESS_VERSION_TESTNET;
@@ -149,5 +179,20 @@ public class NetParams {
             MAX_TARGET_DIFFICULTY = MAX_DIFFICULTY_PRODNET;
         }
         PROOF_OF_WORK_LIMIT = Utils.decodeCompactBits(MAX_TARGET_DIFFICULTY);
+        //
+        // Get the application build properties
+        //
+        Class<?> thisClass = Class.forName("org.ScripterRon.BitcoinCore.NetParams");
+        String applicationID;
+        String applicationVersion;
+        try (InputStream classStream = thisClass.getClassLoader().getResourceAsStream("META-INF/application.properties")) {
+            if (classStream == null)
+                throw new IOException("Application build properties not found");
+            Properties applicationProperties = new Properties();
+            applicationProperties.load(classStream);
+            applicationID = applicationProperties.getProperty("application.id");
+            applicationVersion = applicationProperties.getProperty("application.version");
+        }
+        LIBRARY_NAME = String.format("%s:%s", applicationID, applicationVersion);
     }
 }

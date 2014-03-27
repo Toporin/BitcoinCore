@@ -43,7 +43,7 @@ public interface InventoryHandler {
     public void requestInventory(Peer peer, int type, Sha256Hash hash);
 
     /**
-     * Processes a completed request.  This method is called when a 'merkleblock'
+     * Processes request completion.  This method is called when a 'merkleblock'
      *  or 'tx' message is processed.
      *
      * @param       peer            Peer sending the response

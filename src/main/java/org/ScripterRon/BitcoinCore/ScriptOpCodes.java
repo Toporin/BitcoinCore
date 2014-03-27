@@ -278,15 +278,12 @@ public class ScriptOpCodes {
     /**
      * Converts the given OpCode into a string (eg "0", "PUSHDATA", or "NON_OP(10)")
      *
-     * @param       opCode          OpCode
+     * @param       opcode          Opcode
      * @return                      String result
      */
-    public static String getOpCodeName(byte opCode) {
-        int opcode = opCode & 0xff;
-
+    public static String getOpCodeName(int opcode) {
         if (opCodeMap.containsKey(opcode))
             return opCodeMap.get(opcode);
-
         return "NON_OP(" + opcode + ")";
     }
 }
