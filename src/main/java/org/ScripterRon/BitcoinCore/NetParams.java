@@ -185,9 +185,9 @@ public class NetParams {
         Class<?> thisClass = Class.forName("org.ScripterRon.BitcoinCore.NetParams");
         String applicationID;
         String applicationVersion;
-        try (InputStream classStream = thisClass.getClassLoader().getResourceAsStream("META-INF/application.properties")) {
+        try (InputStream classStream = thisClass.getClassLoader().getResourceAsStream("META-INF/bitcoincore.properties")) {
             if (classStream == null)
-                throw new IOException("Application build properties not found");
+                throw new IOException("Library build properties not found");
             Properties applicationProperties = new Properties();
             applicationProperties.load(classStream);
             applicationID = applicationProperties.getProperty("application.id");
