@@ -1,9 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Use LF only for .java files
-*.java text eol=lf
-
 # Image files are binary
 *.dat binary
 *.gif binary
