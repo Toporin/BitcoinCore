@@ -18,7 +18,6 @@ package org.ScripterRon.BitcoinCore;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.List;
 

@@ -19,8 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 
-import java.util.Iterator;
-
 /**
  * <p>The 'tx' message contains a transaction which is not yet in a block.  The transaction
  * will be held in the memory pool for a period of time to allow other peers to request

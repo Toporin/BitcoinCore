@@ -22,10 +22,10 @@ package org.ScripterRon.BitcoinCore;
 public class OutPoint {
 
     /** The transaction hash */
-    private Sha256Hash txHash;
+    private final Sha256Hash txHash;
 
     /** The output index */
-    private int outputIndex;
+    private final int outputIndex;
 
     /**
      * Creates a new transaction output point

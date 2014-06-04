@@ -17,7 +17,6 @@
 package org.ScripterRon.BitcoinCore;
 
 import org.bouncycastle.asn1.x9.X9ECParameters;
-
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
@@ -28,22 +27,16 @@ import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.crypto.signers.HMacDSAKCalculator;
-
 import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve;
-
 import org.bouncycastle.math.ec.ECAlgorithms;
 import org.bouncycastle.math.ec.ECFieldElement;
 import org.bouncycastle.math.ec.ECPoint;
-
 import org.bouncycastle.util.encoders.Base64;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 import java.math.BigInteger;
-
 import java.security.SecureRandom;
-
 import java.util.Arrays;
 
 /**

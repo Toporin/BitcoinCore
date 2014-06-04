@@ -19,10 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 
-import java.nio.ByteBuffer;
-
-import java.util.List;
-
 /**
  * <p>The 'alert' message is sent out by the development team to notify all peers in the network
  * about a problem.  The alert is displayed in the user interface and written to the

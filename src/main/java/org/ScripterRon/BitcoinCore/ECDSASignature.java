@@ -22,7 +22,6 @@ import org.bouncycastle.asn1.DLSequence;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
 import java.math.BigInteger;
 
 /**

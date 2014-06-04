@@ -19,7 +19,6 @@ import java.io.EOFException;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import java.math.BigInteger;
 
 /**
@@ -38,7 +37,7 @@ public class TransactionOutput {
     private BigInteger value;
 
     /** Transaction output index */
-    private int txIndex;
+    private final int txIndex;
 
     /** Output script */
     private byte[] scriptBytes;

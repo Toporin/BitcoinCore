@@ -17,7 +17,6 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.UnsupportedEncodingException;
-
 import java.util.Arrays;
 
 /**

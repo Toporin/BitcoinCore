@@ -19,7 +19,6 @@ import java.io.EOFException;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,12 +35,12 @@ import java.util.List;
  * encoding.</p>
  *
  * <p>The serialization is fixed and provides a hard guarantee about the encoded size,
- * <tt>SIZE <= 10 + ceil(32.25*N)</tt> where N represents the number of leaf nodes of the partial tree. N itself
+ * <tt>SIZE LE 10 + ceil(32.25*N)</tt> where N represents the number of leaf nodes of the partial tree. N itself
  * is bounded by:</p>
  *
  * <p>
- * N <= total_transactions<br>
- * N <= 1 + matched_transactions*tree_height
+ * N LE total_transactions<br>
+ * N LE 1 + matched_transactions*tree_height
  * </p>
  *
  * <p>Merkle Branch</p>
@@ -195,7 +194,7 @@ public class MerkleBranch {
      * Creates the serialized Merkle branch
      *
      * @param       outStream       Output stream for the serialized data
-     * @throws      IOException
+     * @throws      IOException     I/O error processing stream
      */
     public void bitcoinSerialize(OutputStream outStream) throws IOException {
         //

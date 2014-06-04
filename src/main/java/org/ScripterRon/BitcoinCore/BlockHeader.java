@@ -16,9 +16,7 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
-
 import java.math.BigInteger;
-
 import java.util.List;
 
 /**

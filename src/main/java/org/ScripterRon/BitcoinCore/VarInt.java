@@ -90,15 +90,14 @@ public final class VarInt {
      * Creates a new VarInt from an input stream encoded in little-endian format
      *
      * @param       in              Input stream
-     * @throws      EOFException
-     * @throws      IOException
+     * @throws      EOFException    End-of-data processing stream
+     * @throws      IOException     I/O error processing stream
      */
     public VarInt(InputStream in) throws EOFException, IOException {
         int count;
         int first = in.read();
         if (first < 0)
             throw new EOFException("Premature end-of-data while processing VarInt");
-
         if (first < 253) {
             // 8 bits.
             value = first;

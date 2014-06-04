@@ -27,7 +27,7 @@ public class Message {
     private ByteBuffer buffer;
 
     /** The associated peer */
-    private Peer peer;
+    private final Peer peer;
 
     /** The message command */
     private int command;

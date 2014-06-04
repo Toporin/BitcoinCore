@@ -19,11 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * <p>A 'reject' message is sent when the receiver rejects a message.  The message

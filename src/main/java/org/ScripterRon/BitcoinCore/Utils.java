@@ -20,13 +20,10 @@ import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 
 import java.io.IOException;
 import java.io.OutputStream;
-
 import java.math.BigInteger;
 import java.math.BigDecimal;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.List;
 
 /**
@@ -167,8 +164,9 @@ public class Utils {
         byte[] bytes;
         synchronized(digest) {
             digest.reset();
-            for (byte[] input : inputList)
+            inputList.stream().forEach((input) -> {
                 digest.update(input, 0, input.length);
+            });
             byte[] first = digest.digest();
             bytes = digest.digest(first);
         }
@@ -459,7 +457,7 @@ public class Utils {
      * @param       val             Value to be written
      * @param       stream          Output stream
      *
-     * @throws                      IOException
+     * @throws      IOException     I/O error processing stream
      */
     public static void uint32ToByteStreamLE(long val, OutputStream stream) throws IOException {
         stream.write((int)(0x00FF&val));
@@ -509,7 +507,7 @@ public class Utils {
      *
      * @param       val             The value to be written
      * @param       stream          The output stream
-     * @throws      IOException
+     * @throws      IOException     I/O error processing stream
      */
     public static void uint64ToByteStreamLE(long val, OutputStream stream) throws IOException {
         stream.write((int)(0x00FF&val));
@@ -527,7 +525,7 @@ public class Utils {
      *
      * @param       val             BigInteger to be written
      * @param       stream          Output stream
-     * @throws      IOException
+     * @throws      IOException     I/O error processing stream
      */
     public static void uint64ToByteStreamLE(BigInteger val, OutputStream stream) throws IOException {
         byte[] bytes = val.toByteArray();

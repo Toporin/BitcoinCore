@@ -19,7 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,7 +79,7 @@ public class Transaction {
      * @throws      IOException             Unable to serialize transaction
      * @throws      VerificationException   Transaction verification failure
      */
-    public Transaction(List<SignedInput> inputs, List<TransactionOutput> outputs) 
+    public Transaction(List<SignedInput> inputs, List<TransactionOutput> outputs)
                                             throws ECException, IOException, VerificationException {
         txVersion = 1;
         txOutputs = outputs;
@@ -139,10 +138,12 @@ public class Transaction {
         // Calculate the normalized transaction ID
         //
         List<byte[]> bufferList = new ArrayList<>(txInputs.size()+txOutputs.size());
-        for (TransactionInput txInput : txInputs)
+        txInputs.stream().forEach((txInput) -> {
             bufferList.add(txInput.getOutPoint().bitcoinSerialize());
-        for (TransactionOutput txOutput : txOutputs)
+        });
+        txOutputs.stream().forEach((txOutput) -> {
             bufferList.add(txOutput.bitcoinSerialize());
+        });
         normID = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(bufferList)));
     }
 

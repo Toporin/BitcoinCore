@@ -16,7 +16,6 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.nio.ByteBuffer;
-
 import java.util.List;
 
 /**

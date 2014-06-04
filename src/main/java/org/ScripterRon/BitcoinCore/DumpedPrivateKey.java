@@ -16,7 +16,6 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.math.BigInteger;
-
 import java.util.Arrays;
 
 /**

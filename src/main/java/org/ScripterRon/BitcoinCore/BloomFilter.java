@@ -56,16 +56,16 @@ public class BloomFilter {
     public static final int MAX_HASH_FUNCS = 50;
 
     /** Filter data */
-    private byte[] filter;
+    private final byte[] filter;
 
     /** Number of hash functions */
-    private long nHashFuncs;
+    private final long nHashFuncs;
 
     /** Random tweak nonce */
-    private long nTweak = Double.valueOf(Math.random()*Long.MAX_VALUE).longValue();
+    private final long nTweak = Double.valueOf(Math.random()*Long.MAX_VALUE).longValue();
 
     /** Filter update flags */
-    private int nFlags = UPDATE_P2PUBKEY_ONLY;
+    private final int nFlags = UPDATE_P2PUBKEY_ONLY;
 
     /**
      * <p>Constructs a new Bloom Filter which will provide approximately the given false positive

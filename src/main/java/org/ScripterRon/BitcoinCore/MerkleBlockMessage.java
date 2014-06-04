@@ -18,7 +18,6 @@ package org.ScripterRon.BitcoinCore;
 import java.io.EOFException;
 import java.io.InputStream;
 import java.io.IOException;
-
 import java.util.LinkedList;
 import java.util.List;
 
