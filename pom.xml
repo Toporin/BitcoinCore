@@ -44,14 +44,14 @@
             </resource>
         </resources>
         <plugins>
-            <!-- Ensure compilation is done under Java 7 -->
+            <!-- Ensure compilation is done for the desired Java version -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.1</version>
                     <configuration>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>${maven.compler.source}</source>
+                        <target>${maven.compiler.target}</target>
                         <showDeprecation>true</showDeprecation>
                         <showWarnings>true</showWarnings>
                     </configuration>
