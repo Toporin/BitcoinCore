@@ -15,12 +15,9 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.nio.ByteBuffer;
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -49,84 +46,44 @@ public class GetDataMessage {
     /**
      * Create a 'getdata' message
      *
-     * @param       peer            Peer node
-     * @param       type            Request type (INV_TX or INV_FILTERED_BLOCK)
-     * @param       hashList        Hash list
-     * @return      Message
+     * @param       peer            Destination peer
+     * @param       invList         Inventory item list
+     * @return                      Message to be sent to the peer
      */
-    public static Message buildGetDataMessage(Peer peer, int type, List<Sha256Hash> hashList) {
-        int varCount = hashList.size();
-        byte[] varBytes = VarInt.encode(varCount);
-        byte[] msgData = new byte[varBytes.length+varCount*36];
-        //
-        // Build the message payload
-        //
-        System.arraycopy(varBytes, 0, msgData, 0, varBytes.length);
-        int offset = varBytes.length;
-        for (int i=0; i<varCount; i++) {
-            Sha256Hash hash = hashList.get(i);
-            Utils.uint32ToByteArrayLE(type, msgData, offset);
-            System.arraycopy(Utils.reverseBytes(hash.getBytes()), 0, msgData, offset+4, 32);
-            offset+=36;
-        }
+    public static Message buildGetDataMessage(Peer peer, List<InventoryItem> invList) {
+        SerializedBuffer msgBuffer = new SerializedBuffer(invList.size()*36+4);
+        msgBuffer.putVarInt(invList.size());
+        invList.stream().forEach((item) -> item.getBytes(msgBuffer));
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("getdata", msgData);
-        return new Message(buffer, peer,
-                (type==NetParams.INV_FILTERED_BLOCK?MessageHeader.INVBLOCK_CMD:MessageHeader.INVTX_CMD));
+        ByteBuffer buffer = MessageHeader.buildMessage("getdata", msgBuffer);
+        return new Message(buffer, peer, MessageHeader.INV_CMD);
     }
 
     /**
      * Process a 'getdata' message
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            End-of-data while processing message data
-     * @throws      IOException             Unable to read message data
      * @throws      VerificationException   Data verification failed
      */
-    public static void processGetDataMessage(Message msg, ByteArrayInputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
-        Peer peer = msg.getPeer();
+    public static void processGetDataMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
-        // Get the number of inventory entries
+        // Build the request list
         //
-        int varCount = new VarInt(inStream).toInt();
-        if (varCount < 0 || varCount > 50000)
+        int count = inBuffer.getVarInt();
+        if (count < 0 || count > 50000)
             throw new VerificationException("More than 50,000 inventory entries in 'getdata' message");
+        List<InventoryItem> itemList = new ArrayList<>(count);
+        for (int i=0; i<count; i++)
+            itemList.add(new InventoryItem(inBuffer));
         //
-        // Process each request
+        // Notify the message listener
         //
-        List<byte[]> notFound = new ArrayList<>(50);
-        byte[] invBytes = new byte[36];
-        for (int i=0; i<varCount; i++) {
-            int count = inStream.read(invBytes);
-            if (count < 36)
-                throw new EOFException("End-of-data while processing 'getdata' message");
-            int invType = (int)Utils.readUint32LE(invBytes, 0);
-            Sha256Hash hash = new Sha256Hash(Utils.reverseBytes(invBytes, 4, 32));
-            if (!invHandler.sendInventory(peer, invType, hash))
-                notFound.add(Arrays.copyOf(invBytes, 36));
-        }
-        //
-        // Create a 'notfound' response if we didn't find all of the requested items
-        //
-        if (!notFound.isEmpty()) {
-            varCount = notFound.size();
-            byte[] varBytes = VarInt.encode(varCount);
-            byte[] msgData = new byte[varCount*36+varBytes.length];
-            System.arraycopy(varBytes, 0, msgData, 0, varBytes.length);
-            int offset = varBytes.length;
-            for (byte[] invItem : notFound) {
-                System.arraycopy(invItem, 0, msgData, offset, 36);
-                offset += 36;
-            }
-            ByteBuffer buffer = MessageHeader.buildMessage("notfound", msgData);
-            msg.setBuffer(buffer);
-            msg.setCommand(MessageHeader.NOTFOUND_CMD);
-        }
+        msgListener.sendInventory(msg.getPeer(), itemList);
     }
 }

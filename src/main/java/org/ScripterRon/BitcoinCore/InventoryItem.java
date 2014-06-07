@@ -15,6 +15,8 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.EOFException;
+
 /**
  * InventoryItem represents an inventory item (block or transaction).  Inventory items
  * are used in messages that announce the availability of an item or request an item
@@ -37,6 +39,40 @@ public class InventoryItem implements ByteSerializable {
     public InventoryItem(int type, Sha256Hash hash) {
         this.hash = hash;
         this.type = type;
+    }
+
+    /**
+     * Create an inventory item
+     *
+     * @param       inBuffer            Input buffer
+     * @throws      EOFException        End-of-data while processing byte stream
+     */
+    public InventoryItem(SerializedBuffer inBuffer) throws EOFException {
+        type = inBuffer.getInt();
+        hash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes()));
+    }
+
+    /**
+     * Write the serialized object to the output buffer
+     *
+     * @param       outBuffer           Output buffer
+     * @return                          Output buffer
+     */
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putInt(type)
+                 .putBytes(Utils.reverseBytes(hash.getBytes()));
+        return outBuffer;
+    }
+
+    /**
+     * Return the serialized bytes
+     *
+     * @return                          Byte array
+     */
+    @Override
+    public byte[] getBytes() {
+        return getBytes(new SerializedBuffer(36)).toByteArray();
     }
 
     /**

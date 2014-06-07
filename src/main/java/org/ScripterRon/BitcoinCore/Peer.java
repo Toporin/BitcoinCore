@@ -18,11 +18,11 @@ package org.ScripterRon.BitcoinCore;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The bitcoin network consists of peer nodes which establish communication links
+ * The Bitcoin network consists of peer nodes which establish communication links
  * between themselves.  The nodes exchange blocks and transactions which are used
  * to create new blocks which are then added to the block chain.
  *
@@ -40,14 +40,23 @@ public class Peer {
     /** Selection key */
     private final SelectionKey key;
 
+    /** Transaction Bloom filter */
+    private BloomFilter bloomFilter;
+
+    /** Inbound message count */
+    private int inputCount;
+
     /** Current input buffer */
     private ByteBuffer inputBuffer;
 
     /** Output message list */
-    private final List<Message> outputList = new LinkedList<>();
+    private final List<Message> outputList = new ArrayList<>();
 
     /** Current output buffer */
     private ByteBuffer outputBuffer;
+
+    /** Deferred message */
+    private Message deferredMessage;
 
     /** Disconnect peer */
     private boolean disconnectPeer;
@@ -72,6 +81,15 @@ public class Peer {
 
     /** Current ban score */
     private int banScore;
+
+    /** Relay blocks */
+    private boolean relayBlocks;
+
+    /** Relay transactions */
+    private boolean relayTransactions;
+
+    /** Incomplete GetBlocks response */
+    private boolean incompleteResponse;
 
     /** Ping sent */
     private boolean pingSent;
@@ -117,6 +135,24 @@ public class Peer {
     }
 
     /**
+     * Returns the input message count
+     *
+     * @return      Message count
+     */
+    public int getInputCount() {
+        return inputCount;
+    }
+
+    /**
+     * Sets the input message count
+     *
+     * @param       messageCount        The new message count
+     */
+    public void setInputCount(int messageCount) {
+        this.inputCount = messageCount;
+    }
+
+    /**
      * Returns the current input buffer
      *
      * @return      Input buffer
@@ -146,7 +182,7 @@ public class Peer {
     /**
      * Returns the current output buffer
      *
-     * @return      Output buffer
+     * @return      Output buffer or null if there is no buffer
      */
     public ByteBuffer getOutputBuffer() {
         return outputBuffer;
@@ -159,6 +195,43 @@ public class Peer {
      */
     public void setOutputBuffer(ByteBuffer buffer) {
         this.outputBuffer = buffer;
+    }
+
+    /**
+     * Returns the deferred message
+     *
+     * @return      Deferred message or null if there is no message
+     */
+    public Message getDeferredMessage() {
+        return deferredMessage;
+    }
+
+    /**
+     * Sets the deferred message
+     *
+     * @param       deferredMessage     The deferred message
+     */
+    public void setDeferredMessage(Message deferredMessage) {
+        this.deferredMessage = deferredMessage;
+    }
+
+    /**
+     * Set the Bloom filter for this peer
+     *
+     * @param       filter              Bloom filter
+     */
+
+    public void setBloomFilter(BloomFilter filter) {
+        this.bloomFilter = filter;
+    }
+
+    /**
+     * Returns the Bloom filter for this peer
+     *
+     * @return      Bloom filter or null if there is no filter
+     */
+    public BloomFilter getBloomFilter() {
+        return bloomFilter;
     }
 
     /**
@@ -300,6 +373,60 @@ public class Peer {
      */
     public void incVersionCount() {
         versionCount++;
+    }
+
+    /**
+     * Sets transaction relay
+     *
+     * @param       relay               TRUE if transactions should be relayed
+     */
+    public void setTxRelay(boolean relay) {
+        this.relayTransactions = relay;
+    }
+
+    /**
+     * Checks if transactions should be relayed
+     *
+     * @return      TRUE if transactions should be relayed
+     */
+    public boolean shouldRelayTx() {
+        return relayTransactions;
+    }
+
+    /**
+     * Sets block relay
+     *
+     * @param       relay               TRUE if blocks should be relayed
+     */
+    public void setBlockRelay(boolean relay) {
+        this.relayBlocks = relay;
+    }
+
+    /**
+     * Checks if blocks should be relayed
+     *
+     * @return      TRUE if blocks should be relayed
+     */
+    public boolean shouldRelayBlocks() {
+        return relayBlocks;
+    }
+
+    /**
+     * Sets the incomplete response flag
+     *
+     * @param       incomplete           TRUE if response was incomplete
+     */
+    public void setIncomplete(boolean incomplete) {
+        this.incompleteResponse = incomplete;
+    }
+
+    /**
+     * Checks if the previous response was incomplete
+     *
+     * @return      TRUE if the response was incomplete
+     */
+    public boolean isIncomplete() {
+        return incompleteResponse;
     }
 
     /**

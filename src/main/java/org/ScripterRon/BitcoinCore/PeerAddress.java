@@ -1,5 +1,4 @@
 /**
- * Copyright 2011 Google Inc.
  * Copyright 2013-2014 Ronald W Hoffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +15,26 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.EOFException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 /**
  * A PeerAddress holds an IP address and port number representing the network location of
  * a peer in the Bitcoin Peer-to-Peer network.
  */
-public class PeerAddress {
+public class PeerAddress implements ByteSerializable {
+
+    /** Length of an encoded peer address */
+    public static final int PEER_ADDRESS_SIZE = 30;
+
+    /** IPv6-encoded IPv4 address prefix */
+    public static final byte[] IPV6_PREFIX = new byte[] {
+            (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00,
+            (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0xff, (byte)0xff
+    };
 
     /** The IP address */
     private InetAddress address;
@@ -40,6 +50,12 @@ public class PeerAddress {
 
     /** Peer connected */
     private boolean connected;
+
+    /** Time peer connected */
+    private long timeConnected;
+
+    /** Outbound connection */
+    private boolean outboundConnection;
 
     /** Static address */
     private boolean staticAddress;
@@ -98,40 +114,75 @@ public class PeerAddress {
         String addrString = peerString.substring(1, addrSep);
         String portString = peerString.substring(portSep+1);
         //
-        // Decode the address
-        //
-        byte[] addrBytes;
-        if (addrString.indexOf('.') >= 0) {
-            String[] addrParts = addrString.split("\\D");
-            if (addrParts.length != 4)
-                throw new UnknownHostException("Incorrect IPv4 address format");
-            addrBytes = new byte[4];
-            for (int j=0; j<4; j++)
-                addrBytes[j] = (byte)Integer.parseInt(addrParts[j]);
-        } else if (addrString.indexOf(':') >= 0) {
-            String[] addrParts = addrString.split(":");
-            if (addrParts.length != 8)
-                throw new UnknownHostException("Incorrect IPv6 address format");
-            addrBytes = new byte[16];
-            int offset = 0;
-            for (int j=0; j<8; j++) {
-                if (addrParts[j].length() == 0) {
-                    offset += 2;
-                } else {
-                    int nibble = Integer.parseInt(addrParts[j], 16);
-                    addrBytes[offset++] = (byte)(nibble>>8);
-                    addrBytes[offset++] = (byte)nibble;
-                }
-            }
-        } else {
-            throw new UnknownHostException("Incorrect [address]:port format");
-        }
-        //
         // Create the address and port values
         //
-        address = InetAddress.getByAddress(addrBytes);
+        address = InetAddress.getByName(addrString);
         port = Integer.parseInt(portString);
         timeSeen = System.currentTimeMillis()/1000;
+    }
+
+    /**
+     * Constructs a peer address from the serialized data
+     *
+     * @param       inBuffer        Serialized buffer
+     * @throws      EOFException    End-of-data while processing serialized data
+     */
+    public PeerAddress(SerializedBuffer inBuffer) throws EOFException {
+        //
+        // Get the address values
+        //
+        timeSeen = inBuffer.getInt();
+        services = inBuffer.getLong();
+        byte[] addrBytes = inBuffer.getBytes(16);
+        port = inBuffer.getShort();
+        //
+        // Generate the IPv4 or IPv6 address
+        //
+        try {
+            boolean ipv4 = true;
+            for (int j=0; j<12; j++) {
+                if (addrBytes[j] != IPV6_PREFIX[j]) {
+                    ipv4 = false;
+                    break;
+                }
+            }
+            if (ipv4)
+                address = InetAddress.getByAddress(Arrays.copyOfRange(addrBytes, 12, 16));
+            else
+                address = InetAddress.getByAddress(addrBytes);
+        } catch (UnknownHostException exc) {
+            throw new RuntimeException("Unexpected exception thrown by InetAddress.getByAddress", exc);
+        }
+    }
+
+    /**
+     * Writes the serialized address to a buffer
+     *
+     * @param       buffer          Serialized buffer
+     * @return                      Serialized buffer
+     */
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer buffer) {
+        buffer.putInt((int)timeSeen)
+                .putLong(services);
+        byte[] addrBytes = address.getAddress();
+        if (addrBytes.length == 16)
+            buffer.putBytes(addrBytes);
+        else
+            buffer.putBytes(IPV6_PREFIX).putBytes(addrBytes);
+        buffer.putShort((short)port);
+        return buffer;
+    }
+
+    /**
+     * Returns the serialized address
+     *
+     * @return                      Serialized address
+     */
+    @Override
+    public byte[] getBytes() {
+        SerializedBuffer buffer = new SerializedBuffer(PEER_ADDRESS_SIZE);
+        return getBytes(buffer).toByteArray();
     }
 
     /**
@@ -225,6 +276,42 @@ public class PeerAddress {
     }
 
     /**
+     * Returns the time the peer connected to us
+     *
+     * @return                      Time connected
+     */
+    public long getTimeConnected() {
+        return timeConnected;
+    }
+
+    /**
+     * Sets the time the peer connected to us
+     *
+     * @param       timeConnected   Time the peer connected (seconds since the epoch)
+     */
+    public void setTimeConnected(long timeConnected) {
+        this.timeConnected = timeConnected;
+    }
+
+    /**
+     * Checks if this is an outbound connection
+     *
+     * @return      TRUE if this is an outbound connection
+     */
+    public boolean isOutbound() {
+        return outboundConnection;
+    }
+
+    /**
+     * Set the peer connection type
+     *
+     * @param       isOutbound          TRUE if this is an outbound connection
+     */
+    public void setOutbound(boolean isOutbound) {
+        outboundConnection = isOutbound;
+    }
+
+    /**
      * Check if this is a static address
      *
      * @return      TRUE if this is a static address
@@ -236,7 +323,7 @@ public class PeerAddress {
     /**
      * Set the address type
      *
-     * @param       isStatic        TRUE if this is a static address
+     * @param       isStatic            TRUE if this is a static address
      */
     public void setStatic(boolean isStatic) {
         staticAddress = isStatic;
@@ -269,13 +356,8 @@ public class PeerAddress {
      */
     @Override
     public boolean equals(Object obj) {
-        boolean areEqual = false;
-        if (obj != null && (obj instanceof PeerAddress)) {
-            PeerAddress other = (PeerAddress)obj;
-            areEqual = (address.equals(other.address) && port == other.port);
-        }
-
-        return areEqual;
+        return (obj!=null && (obj instanceof PeerAddress) &&
+                address.equals(((PeerAddress)obj).address) && port == ((PeerAddress)obj).port);
     }
 
     /**

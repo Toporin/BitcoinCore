@@ -26,11 +26,26 @@ public class Message {
     /** The message buffer */
     private ByteBuffer buffer;
 
+    /** The message restart buffer */
+    private ByteBuffer restartBuffer;
+
+    /** Alert associated with this message */
+    private Alert alert;
+
     /** The associated peer */
-    private final Peer peer;
+    private Peer peer;
 
     /** The message command */
     private int command;
+
+    /** Deferred restart index */
+    private int restartIndex;
+
+    /**
+     * Creates an empty message for use by subclasses
+     */
+    protected Message() {
+    }
 
     /**
      * Creates a new message
@@ -55,9 +70,18 @@ public class Message {
     }
 
     /**
+     * Sets the peer associated with this message
+     *
+     * @param       peer            Associated peer
+     */
+    public void setPeer(Peer peer) {
+        this.peer = peer;
+    }
+
+    /**
      * Returns the message buffer
      *
-     * @return      Message buffer
+     * @return                      Message buffer
      */
     public ByteBuffer getBuffer() {
         return buffer;
@@ -73,9 +97,27 @@ public class Message {
     }
 
     /**
+     * Returns the message restart buffer
+     *
+     * @return                      Restart buffer
+     */
+    public ByteBuffer getRestartBuffer() {
+        return restartBuffer;
+    }
+
+    /**
+     * Sets the message restart buffer
+     *
+     * @param       buffer          Restart buffer
+     */
+    public void setRestartBuffer(ByteBuffer buffer) {
+        restartBuffer = buffer;
+    }
+
+    /**
      * Returns the message command
      *
-     * @return      Message command
+     * @return                      Message command
      */
     public int getCommand() {
         return command;
@@ -91,18 +133,52 @@ public class Message {
     }
 
     /**
-     * Creates a copy of this message for another peer
+     * Returns the deferred restart index
      *
-     * @param       peer            The target peer
-     * @return                      Cloned message
+     * @return                      Restart index
+     */
+    public int getRestartIndex() {
+        return restartIndex;
+    }
+
+    /**
+     * Set the deferred restart index
+     *
+     * @param       restartIndex    Restart index
+     */
+    public void setRestartIndex(int restartIndex) {
+        this.restartIndex = restartIndex;
+    }
+
+    /**
+     * Returns the alert associated with this message
+     *
+     * @return                      Alert
+     */
+    public Alert getAlert() {
+        return alert;
+    }
+
+    /**
+     * Sets the alert associated with this message
+     *
+     * @param       alert           Alert
+     */
+    public void setAlert(Alert alert) {
+        this.alert = alert;
+    }
+
+    /**
+     * Creates a copy of this message
+     *
+     * @param       peer            Target peer
+     * @return                      Message clone
      *
      * A new ByteBuffer is created using the same byte array.  This allows multiple
-     * channels to process the data at the same time.
+     * output channels to process the data at the same time.
      */
     public Message clone(Peer peer) {
-        ByteBuffer newBuffer = null;
-        if (buffer != null)
-            newBuffer = ByteBuffer.wrap(buffer.array());
+        ByteBuffer newBuffer = (buffer!=null ? ByteBuffer.wrap(buffer.array()) : null);
         return new Message(newBuffer, peer, command);
     }
 }

@@ -16,12 +16,9 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
- * <p>TransactionInput</p>
+ * <p>A transaction input has the following format:</p>
  * <pre>
  *   Size           Field               Description
  *   ===            =====               ===========
@@ -30,28 +27,30 @@ import java.io.OutputStream;
  *   4 bytes        TxOutIndex          Index of the output within the transaction
  *   VarInt         TxInScriptLength    Script length
  *   Variable       TxInScript          Script
- *   4 bytes        TxInSeqNumber       Input sequence number (ignored unless transaction LockTime is non-zero)
+ *   4 bytes        TxInSeqNumber       Input sequence number (irrelevant unless transaction LockTime is
+ *                                      non-zero)
  * </pre>
+ * <p>All numbers are encoded in little-endian format (least-significant byte to most-significant byte)</p>
  */
-public class TransactionInput {
+public class TransactionInput implements ByteSerializable {
 
     /** The transaction output connected to this input */
-    private OutPoint outPoint;
+    private final OutPoint outPoint;
 
     /** Input script */
     private byte[] scriptBytes;
 
     /** Input sequence number */
-    private long seqNumber;
+    private final int seqNumber;
 
     /** Parent transaction */
-    private Transaction tx;
+    private final Transaction tx;
 
     /** Transaction input index */
-    private int txIndex;
+    private final int txIndex;
 
     /**
-     * Creates a transaction input for the specified outpoint.
+     * Create a transaction input for the specified outpoint.
      *
      * @param       tx                      Parent transaction
      * @param       txIndex                 Transaction input index
@@ -66,78 +65,62 @@ public class TransactionInput {
     }
 
     /**
-     * Creates a transaction input from the encoded byte stream
+     * Create a transaction input from the encoded byte stream
      *
-     * @param       tx                      Parent transaction
-     * @param       txIndex                 Transaction input index
-     * @param       inStream                Input stream
-     * @throws      EOFException            Input stream is too short
-     * @throws      IOException             Error reading the input stream
-     * @throws      VerificationException   Verification error
+     * @param       tx              Parent transaction
+     * @param       txIndex         Transaction input index
+     * @param       inBuffer        Input buffer
+     * @throws      EOFException    Input stream is too short
+     * @throws      VerificationException  Verification error
      */
-    public TransactionInput(Transaction tx, int txIndex, InputStream inStream)
-                                    throws EOFException, IOException, VerificationException {
+    public TransactionInput(Transaction tx, int txIndex, SerializedBuffer inBuffer)
+                                    throws EOFException, VerificationException {
         this.tx = tx;
         this.txIndex = txIndex;
         //
         // Get the transaction output connected to this input
         //
-        byte[] bytes = new byte[36];
-        int count = inStream.read(bytes, 0, 36);
-        if (count != 36)
-            throw new EOFException("End-of-data while building TransactionInput");
-        Sha256Hash prevTxHash = new Sha256Hash(Utils.reverseBytes(bytes, 0, 32));
-        int prevTxIndex = (int)Utils.readUint32LE(bytes, 32);
-        outPoint = new OutPoint(prevTxHash, prevTxIndex);
+        outPoint = new OutPoint(inBuffer);
         //
-        // Get the script (it is possible to not have a script)
+        // Get the script
         //
-        int scriptCount = new VarInt(inStream).toInt();
-        if (scriptCount < 0)
-            throw new VerificationException("Script byte count is not valid");
-        scriptBytes = new byte[scriptCount];
-        if (scriptCount > 0) {
-            count = inStream.read(scriptBytes);
-            if (count != scriptCount)
-                throw new EOFException("End-of-data while building TransactionInput");
-        }
+        scriptBytes = inBuffer.getBytes();
         //
         // Get the sequence number
         //
-        count = inStream.read(bytes, 0, 4);
-        if (count != 4)
-            throw new EOFException("End-of-data while building TransactionInput");
-        seqNumber = Utils.readUint32LE(bytes, 0);
+        seqNumber = inBuffer.getInt();
     }
 
     /**
-     * Serialize the transaction input
+     * Return the serialized transaction input
      *
-     * @param       outStream           Output stream
-     * @throws      IOException         Unable to create the serialized data
+     * @param       outBuffer       Output buffer
+     * @return                      Output buffer
      */
-    public final void bitcoinSerialize(OutputStream outStream) throws IOException {
-        //
-        // Encode the outpoint
-        //
-        outStream.write(Utils.reverseBytes(outPoint.getHash().getBytes()));
-        Utils.uint32ToByteStreamLE(outPoint.getIndex(), outStream);
-        //
-        // Encode the script bytes
-        //
-        outStream.write(VarInt.encode(scriptBytes.length));
-        if (scriptBytes.length > 0)
-            outStream.write(scriptBytes);
-        //
-        // Encode the sequence number
-        //
-        Utils.uint32ToByteStreamLE(seqNumber, outStream);
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outPoint.getBytes(outBuffer)
+                .putVarInt(scriptBytes.length)
+                .putBytes(scriptBytes)
+                .putInt(seqNumber);
+        return outBuffer;
     }
 
     /**
-     * Returns the transaction containing this input
+     * Returns the serialized transaction input
      *
-     * @return      Parent transaction
+     * @return                      Serialized transaction input
+     */
+    @Override
+    public byte[] getBytes() {
+        SerializedBuffer buffer = new SerializedBuffer();
+        return getBytes(buffer).toByteArray();
+    }
+
+    /**
+     * Return the transaction containing this input
+     *
+     * @return                      Parent transaction
      */
     public Transaction getTransaction() {
         return tx;
@@ -146,7 +129,7 @@ public class TransactionInput {
     /**
      * Return the index of this input within the transaction inputs
      *
-     * @return      Transaction input index
+     * @return                      Transaction input index
      */
     public int getIndex() {
         return txIndex;
@@ -155,23 +138,23 @@ public class TransactionInput {
     /**
      * Get the transaction output connected to this input
      *
-     * @return      Transaction output
+     * @return                      Transaction output
      */
     public OutPoint getOutPoint() {
         return outPoint;
     }
 
     /**
-     * Returns the script bytes for this input
+     * Return the script bytes for this input
      *
-     * @return      Script bytes or null
+     * @return                      Script bytes
      */
     public byte[] getScriptBytes() {
         return scriptBytes;
     }
 
     /**
-     * Sets the script bytes for this input
+     * Set the script bytes for this input
      *
      * @param       scriptBytes     Script bytes
      */
@@ -180,7 +163,16 @@ public class TransactionInput {
     }
 
     /**
-     * Serializes this input for use in a transaction signature
+     * Return the transaction sequence number
+     *
+     * @return      Transaction sequence number
+     */
+    public int getSeqNumber() {
+        return seqNumber;
+    }
+
+    /**
+     * Serialize this input for use in a transaction signature
      *
      * The scriptBytes are replaced by the supplied subScriptBytes.  In addition, the sequence number
      * is set to zero for all hash types other than SIGHASH_ALL.
@@ -188,19 +180,12 @@ public class TransactionInput {
      * @param       index           Index of the input being signed
      * @param       hashType        Hash type
      * @param       subScriptBytes  Replacement script bytes
-     * @param       outStream       Output stream
-     * @throws      IOException     Unable to serialize data
+     * @param       outBuffer       Output buffer
      */
-    public void serializeForSignature(int index, int hashType, byte[] subScriptBytes, OutputStream outStream)
-                                    throws IOException {
-        outStream.write(Utils.reverseBytes(outPoint.getHash().getBytes()));
-        Utils.uint32ToByteStreamLE(outPoint.getIndex(), outStream);
-        outStream.write(VarInt.encode(subScriptBytes.length));
-        if (subScriptBytes.length != 0)
-            outStream.write(subScriptBytes);
-        if (hashType == ScriptOpCodes.SIGHASH_ALL)
-            Utils.uint32ToByteStreamLE(seqNumber, outStream);
-        else
-            Utils.uint32ToByteStreamLE((index==txIndex?seqNumber:0), outStream);
+    public void serializeForSignature(int index, int hashType, byte[] subScriptBytes, SerializedBuffer outBuffer) {
+        outPoint.getBytes(outBuffer)
+                .putVarInt(subScriptBytes.length)
+                .putBytes(subScriptBytes)
+                .putInt(hashType==ScriptOpCodes.SIGHASH_ALL||index==txIndex ? seqNumber : 0);
     }
 }

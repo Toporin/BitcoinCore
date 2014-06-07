@@ -15,11 +15,13 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.EOFException;
+
 /**
  * An outpoint describes the transaction output that is connected to a transaction input.  It consists
  * of the hash for the transaction containing the output and the index of the output within the transaction.
  */
-public class OutPoint {
+public class OutPoint implements ByteSerializable {
 
     /** The transaction hash */
     private final Sha256Hash txHash;
@@ -28,7 +30,7 @@ public class OutPoint {
     private final int outputIndex;
 
     /**
-     * Creates a new transaction output point
+     * Create a new transaction output point
      *
      * @param       txHash          Hash for the transaction output
      * @param       outputIndex     Index of the output within the transaction
@@ -36,6 +38,40 @@ public class OutPoint {
     public OutPoint(Sha256Hash txHash, int outputIndex) {
         this.txHash = txHash;
         this.outputIndex = outputIndex;
+    }
+
+    /**
+     * Create a new transaction output point
+     *
+     * @param       inBuffer        Input buffer
+     * @throws      EOFException    End-of-data processing input stream
+     */
+    public OutPoint(SerializedBuffer inBuffer) throws EOFException {
+        txHash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
+        outputIndex = inBuffer.getInt();
+    }
+
+    /**
+     * Return the serialized output point
+     *
+     * @param       outBuffer       Output buffer
+     */
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putBytes(Utils.reverseBytes(txHash.getBytes()))
+                 .putInt(outputIndex);
+        return outBuffer;
+    }
+
+    /**
+     * Returns the serialized output point
+     *
+     * @return                      Serialized output point
+     */
+    @Override
+    public byte[] getBytes() {
+        SerializedBuffer buffer = new SerializedBuffer(36);
+        return getBytes(buffer).toByteArray();
     }
 
     /**
@@ -57,25 +93,13 @@ public class OutPoint {
     }
 
     /**
-     * Serializes the outpoint
-     *
-     * @return                      Byte array containing serialized data
-     */
-    public byte[] bitcoinSerialize() {
-        byte[] bytes = new byte[36];
-        System.arraycopy(Utils.reverseBytes(txHash.getBytes()), 0, bytes, 0, 32);
-        Utils.uint32ToByteArrayLE(outputIndex, bytes, 32);
-        return bytes;
-    }
-
-    /**
      * Returns the hash code
      *
      * @return      Hash code
      */
     @Override
     public int hashCode() {
-        return txHash.hashCode() ^ (int)(outputIndex|(outputIndex<<16));
+        return txHash.hashCode() ^ (outputIndex|(outputIndex<<16));
     }
 
     /**
@@ -86,11 +110,7 @@ public class OutPoint {
      */
     @Override
     public boolean equals(Object obj) {
-        boolean areEqual = false;
-        if (obj != null && (obj instanceof OutPoint)) {
-            OutPoint out = (OutPoint)obj;
-            areEqual = txHash.equals(out.txHash) && outputIndex == out.outputIndex;
-        }
-        return areEqual;
+        return (obj!=null && (obj instanceof OutPoint) &&
+                txHash.equals(((OutPoint)obj).txHash) && outputIndex==((OutPoint)obj).outputIndex);
     }
 }

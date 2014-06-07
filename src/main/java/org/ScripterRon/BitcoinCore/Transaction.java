@@ -15,10 +15,8 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,9 +28,9 @@ import java.util.List;
  *
  * <p>Each transaction input is connected to the output of a proceeding transaction.  The input contains the
  * first half of a script (ScriptSig) and the output contains the second half (ScriptPubKey).  The script
- * is interpreted to determines if the transaction input is allowed to spend the transaction output.
+ * is interpreted to determines if the transaction input is allowed to spend the transaction output.</p>
  *
- * <p>Transaction</p>
+ * <p>A transaction has the following format:</p>
  * <pre>
  *   Size           Field               Description
  *   ====           =====               ===========
@@ -43,32 +41,34 @@ import java.util.List;
  *   Variable       OutputList          Outputs
  *   4 bytes        LockTime            Transaction lock time
  * </pre>
+ *
+ * <p>All numbers are encoded in little-endian format (least-significant byte to most-significant byte)</p>
  */
-public class Transaction {
+public class Transaction implements ByteSerializable {
 
     /** Serialized transaction data */
-    private byte[] txData;
+    private final byte[] txData;
 
     /** Transaction version */
-    private long txVersion;
+    private final int txVersion;
 
     /** Transaction hash */
-    private Sha256Hash txHash;
+    private final Sha256Hash txHash;
 
     /** Normalized transaction ID */
-    private Sha256Hash normID;
+    private final Sha256Hash normID;
 
     /** Transaction lock time */
-    private long txLockTime;
+    private final long txLockTime;
 
     /* This a coinbase transaction */
-    private boolean coinBase;
+    private final boolean coinBase;
 
     /** List of transaction inputs */
-    private List<TransactionInput> txInputs;
+    private final List<TransactionInput> txInputs;
 
     /** List of transaction outputs */
-    private List<TransactionOutput> txOutputs;
+    private final List<TransactionOutput> txOutputs;
 
     /**
      * Creates a new transaction using the provided inputs
@@ -76,13 +76,15 @@ public class Transaction {
      * @param       inputs                  List of signed inputs
      * @param       outputs                 List of outputs
      * @throws      ECException             Unable to sign transaction
-     * @throws      IOException             Unable to serialize transaction
      * @throws      VerificationException   Transaction verification failure
      */
     public Transaction(List<SignedInput> inputs, List<TransactionOutput> outputs)
-                                            throws ECException, IOException, VerificationException {
+                                            throws ECException, VerificationException {
+        SerializedBuffer outBuffer = new SerializedBuffer(1024);
         txVersion = 1;
         txOutputs = outputs;
+        txLockTime = 0;
+        coinBase = false;
         //
         // Create the transaction inputs
         //
@@ -99,11 +101,10 @@ public class Transaction {
             //
             // Serialize the transaction for signing using the SIGHASH_ALL hash type
             //
-            try (ByteArrayOutputStream outStream = new ByteArrayOutputStream(1024)) {
-                serializeForSignature(i, ScriptOpCodes.SIGHASH_ALL, input.getScriptBytes(), outStream);
-                Utils.uint32ToByteStreamLE(ScriptOpCodes.SIGHASH_ALL, outStream);
-                contents = outStream.toByteArray();
-            }
+            outBuffer.rewind();
+            serializeForSignature(i, ScriptOpCodes.SIGHASH_ALL, input.getScriptBytes(), outBuffer);
+            outBuffer.putInt(ScriptOpCodes.SIGHASH_ALL);
+            contents = outBuffer.toByteArray();
             //
             // Create the DER-encoded signature
             //
@@ -126,10 +127,9 @@ public class Transaction {
         //
         // Serialize the entire transaction
         //
-        try (ByteArrayOutputStream outStream = new ByteArrayOutputStream(1024)) {
-            bitcoinSerialize(outStream);
-            txData = outStream.toByteArray();
-        }
+        outBuffer.rewind();
+        getBytes(outBuffer);
+        txData = outBuffer.toByteArray();
         //
         // Calculate the transaction hash using the serialized data
         //
@@ -139,10 +139,10 @@ public class Transaction {
         //
         List<byte[]> bufferList = new ArrayList<>(txInputs.size()+txOutputs.size());
         txInputs.stream().forEach((txInput) -> {
-            bufferList.add(txInput.getOutPoint().bitcoinSerialize());
+            bufferList.add(txInput.getOutPoint().getBytes());
         });
         txOutputs.stream().forEach((txOutput) -> {
-            bufferList.add(txOutput.bitcoinSerialize());
+            bufferList.add(txOutput.getBytes());
         });
         normID = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(bufferList)));
     }
@@ -150,78 +150,60 @@ public class Transaction {
     /**
      * Creates a new transaction from the serialized data in the byte stream
      *
-     * @param       inStream                Byte stream
+     * @param       inBuffer                Serialized buffer
      * @throws      EOFException            Byte stream is too short
-     * @throws      IOException             Error while reading the input stream
      * @throws      VerificationException   Verification error
      */
-    public Transaction(SerializedInputStream inStream)
-                                    throws EOFException, IOException, VerificationException {
-        byte[] buf = new byte[4];
+    public Transaction(SerializedBuffer inBuffer) throws EOFException, VerificationException {
         //
         // Mark our current position within the input stream
         //
-        inStream.setStart();
+        int segmentStart = inBuffer.getSegmentStart();
+        inBuffer.setSegmentStart();
         //
         // Get the transaction version
         //
-        int count = inStream.read(buf, 0, 4);
-        if (count < 4)
-            throw new EOFException("End-of-data while building Transaction");
-        txVersion = Utils.readUint32LE(buf, 0);
+        txVersion = inBuffer.getInt();
         //
         // Get the transaction inputs
         //
-        int inCount = new VarInt(inStream).toInt();
+        int inCount = inBuffer.getVarInt();
         if (inCount < 0)
-            throw new EOFException("Transaction input count is negative");
+            throw new VerificationException("Transaction input count is negative");
         txInputs = new ArrayList<>(Math.max(inCount, 1));
         for (int i=0; i<inCount; i++)
-            txInputs.add(new TransactionInput(this, i, inStream));
+            txInputs.add(new TransactionInput(this, i, inBuffer));
         //
         // A coinbase transaction has a single unconnected input with a transaction hash of zero
         // and an output index of -1
         //
         if (txInputs.size() == 1) {
             OutPoint outPoint = txInputs.get(0).getOutPoint();
-            if (outPoint.getHash().equals(Sha256Hash.ZERO_HASH) && outPoint.getIndex() == -1)
-                coinBase = true;
+            coinBase = (outPoint.getHash().equals(Sha256Hash.ZERO_HASH) && outPoint.getIndex() == -1);
+        } else {
+            coinBase = false;
         }
         //
         // Get the transaction outputs
         //
-        int outCount = new VarInt(inStream).toInt();
+        int outCount = inBuffer.getVarInt();
         if (outCount < 0)
             throw new EOFException("Transaction output count is negative");
         txOutputs = new ArrayList<>(Math.max(outCount, 1));
         for (int i=0; i<outCount; i++)
-            txOutputs.add(new TransactionOutput(i, inStream));
+            txOutputs.add(new TransactionOutput(i, inBuffer));
         //
         // Get the transaction lock time
         //
-        count = inStream.read(buf, 0, 4);
-        if (count < 4)
-            throw new EOFException("End-of-data while building Transaction");
-        txLockTime = Utils.readUint32LE(buf, 0);
+        txLockTime = inBuffer.getUnsignedInt();
         //
         // Save a copy of the serialized transaction
         //
-        txData = inStream.getBytes();
+        txData = inBuffer.getSegmentBytes();
         //
         // Calculate the transaction hash using the serialized data
         //
         txHash = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(txData)));
-        //
-        // Calculate the normalized transaction ID
-        //
-        List<byte[]> bufferList = new ArrayList<>(txInputs.size()+txOutputs.size());
-        if (!coinBase) {
-            for (TransactionInput txInput : txInputs)
-                bufferList.add(txInput.getOutPoint().bitcoinSerialize());
-        }
-        for (TransactionOutput txOutput : txOutputs)
-            bufferList.add(txOutput.bitcoinSerialize());
-        normID = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(bufferList)));
         //
         // Transaction must have at least one input and one output
         //
@@ -229,35 +211,43 @@ public class Transaction {
             throw new VerificationException("Transaction has no inputs", NetParams.REJECT_INVALID, txHash);
         if (outCount == 0)
             throw new VerificationException("Transaction has no outputs", NetParams.REJECT_INVALID, txHash);
+        //
+        // Calculate the normalized transaction ID
+        //
+        List<byte[]> bufferList = new ArrayList<>(txInputs.size()+txOutputs.size());
+        txInputs.stream().forEach((txInput) -> {
+            bufferList.add(txInput.getOutPoint().getBytes());
+        });
+        txOutputs.stream().forEach((txOutput) -> {
+            bufferList.add(txOutput.getBytes());
+        });
+        normID = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(bufferList)));
+        //
+        // Restore the previous segment (if any)
+        //
+        inBuffer.setSegmentStart(segmentStart);
     }
 
     /**
      * Serialize the transaction
      *
-     * @param       outStream           Output stream
-     * @throws      IOException         Unable to create the serialized data
+     * @param       outBuffer           Output buffer
+     * @return                          Output buffer
      */
-    public final void bitcoinSerialize(OutputStream outStream) throws IOException {
-        //
-        // Encode the transaction version
-        //
-        Utils.uint32ToByteStreamLE(txVersion, outStream);
-        //
-        // Encode the transaction inputs
-        //
-        outStream.write(VarInt.encode(txInputs.size()));
-        for (TransactionInput input : txInputs)
-            input.bitcoinSerialize(outStream);
-        //
-        // Encode the transaction outputs
-        //
-        outStream.write(VarInt.encode(txOutputs.size()));
-        for (TransactionOutput output : txOutputs)
-            output.bitcoinSerialize(outStream);
-        //
-        // Encode the lock time
-        //
-        Utils.uint32ToByteStreamLE(txLockTime, outStream);
+    @Override
+    public final SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putBytes(txData);
+        return outBuffer;
+    }
+
+    /**
+     * Returns the original serialized transaction data
+     *
+     * @return      Serialized transaction data
+     */
+    @Override
+    public byte[] getBytes() {
+        return txData;
     }
 
     /**
@@ -288,21 +278,21 @@ public class Transaction {
     }
 
     /**
-     * Returns the normalized transaction ID
-     *
-     * @return      Normalized transaction ID
-     */
-    public Sha256Hash getNormalizedID() {
-        return normID;
-    }
-
-    /**
      * Returns the transaction hash as a printable string
      *
      * @return      Transaction hash
      */
     public String getHashAsString() {
         return txHash.toString();
+    }
+
+    /**
+     * Returns the normalized transaction ID
+     *
+     * @return      Normalized transaction ID
+     */
+    public Sha256Hash getNormalizedID() {
+        return normID;
     }
 
     /**
@@ -330,15 +320,6 @@ public class Transaction {
      */
     public boolean isCoinBase() {
         return coinBase;
-    }
-
-    /**
-     * Returns the original serialized transaction data
-     *
-     * @return      Serialized transaction data
-     */
-    public byte[] getBytes() {
-        return txData;
     }
 
     /**
@@ -380,17 +361,82 @@ public class Transaction {
     }
 
     /**
+     * <p>Verify the transaction structure as follows</p>
+     * <ul>
+     * <li>A transaction must have at least one input and one output</li>
+     * <li>A transaction output may not specify a negative number of coins</li>
+     * <li>The sum of all of the output amounts must not exceed 21,000,000 BTC</li>
+     * <li>The number of sigops in an output script must not exceed MAX_SIG_OPS</li>
+     * <li>A non-coinbase transaction may not contain any unconnected inputs</li>
+     * <li>A connected output may not be used by more than one input</li>
+     * <li>The input script must contain only push-data operations</li>
+     * </ul>
+     *
+     * @param       canonical                   TRUE to enforce canonical transactions
+     * @throws      VerificationException       Script verification failed
+     */
+    public void verify(boolean canonical) throws VerificationException {
+        try {
+            // Must have at least one input and one output
+            if (txInputs.isEmpty() || txOutputs.isEmpty())
+                throw new VerificationException("Transaction does not have at least 1 input and 1 output",
+                                                NetParams.REJECT_INVALID, txHash);
+            // No output value may be negative
+            // Sum of all output values must not exceed MAX_MONEY
+            // The number of sigops in an output script may not exceed MAX_SIG_OPS
+            BigInteger outTotal = BigInteger.ZERO;
+            for (TransactionOutput txOut : txOutputs) {
+                BigInteger outValue = txOut.getValue();
+                if (outValue.signum() < 0)
+                    throw new VerificationException("Transaction output value is negative",
+                                                    NetParams.REJECT_INVALID, txHash);
+                outTotal = outTotal.add(outValue);
+                if (outTotal.compareTo(NetParams.MAX_MONEY) > 0)
+                    throw new VerificationException("Total transaction output amount exceeds maximum",
+                                                    NetParams.REJECT_INVALID, txHash);
+                byte[] scriptBytes = txOut.getScriptBytes();
+                if (!Script.countSigOps(scriptBytes))
+                    throw new VerificationException("Too many script signature operations",
+                                                    NetParams.REJECT_NONSTANDARD, txHash);
+            }
+            if (!coinBase) {
+                // All inputs must have connected outputs
+                // No outpoint may be used more than once
+                // Input scripts must consist of only push-data operations
+                List<OutPoint> outPoints = new ArrayList<>(txInputs.size());
+                for (TransactionInput txIn : txInputs) {
+                    OutPoint outPoint = txIn.getOutPoint();
+                    if (outPoint.getHash().equals(Sha256Hash.ZERO_HASH) || outPoint.getIndex() < 0)
+                        throw new VerificationException("Non-coinbase transaction contains unconnected inputs",
+                                                        NetParams.REJECT_INVALID, txHash);
+                    if (outPoints.contains(outPoint))
+                        throw new VerificationException("Connected output used in multiple inputs",
+                                                        NetParams.REJECT_INVALID, txHash);
+                    outPoints.add(outPoint);
+                    if (canonical) {
+                        if (!Script.checkInputScript(txIn.getScriptBytes()))
+                            throw new VerificationException("Input script must contain only canonical push-data operations",
+                                                            NetParams.REJECT_NONSTANDARD, txHash);
+                    }
+                }
+            }
+        } catch (EOFException exc) {
+            throw new VerificationException("End-of-data while processing script",
+                                            NetParams.REJECT_MALFORMED, txHash);
+        }
+    }
+
+    /**
      * Serializes the transaction for use in a signature
      *
      * @param       index                   Current transaction index
      * @param       sigHashType             Signature hash type
      * @param       subScriptBytes          Replacement script for the current input
-     * @param       outStream               The output stream
-     * @throws      IOException             Unable to serialize data
-     * @throws      VerificationException   Invalid input index or signature hash type
+     * @param       outBuffer               Output buffer
+     * @throws      VerificationException   Invalid transaction index
      */
     public final void serializeForSignature(int index, int sigHashType, byte[] subScriptBytes,
-                                OutputStream outStream) throws IOException, VerificationException {
+                                            SerializedBuffer outBuffer) throws VerificationException {
         int hashType;
         boolean anyoneCanPay;
         //
@@ -405,7 +451,8 @@ public class Transaction {
         // to remove it when checking for a valid signature.
         //
         // SIGHASH_ALL:    This is the default. It indicates that everything about the transaction is signed
-        //                 except for the input scripts.
+        //                 except for the input scripts. Signing the input scripts as well would obviously make
+        //                 it impossible to construct a transaction.
         // SIGHASH_NONE:   The outputs are not signed and can be anything. This mode allows others to update
         //                 the transaction by changing their inputs sequence numbers.  This means that all
         //                 input sequence numbers are set to 0 except for the current input.
@@ -419,15 +466,19 @@ public class Transaction {
         // In all cases, the script for the current input is replaced with the script from the connected
         // output.  All other input scripts are set to an empty script.
         //
+        // The reference client accepts an invalid hash types and treats it as SIGHASH_ALL.  So we need to
+        // do the same.
+        //
         anyoneCanPay = ((sigHashType&ScriptOpCodes.SIGHASH_ANYONE_CAN_PAY) != 0);
         hashType = sigHashType&(255-ScriptOpCodes.SIGHASH_ANYONE_CAN_PAY);
-        if (hashType != ScriptOpCodes.SIGHASH_ALL && hashType != ScriptOpCodes.SIGHASH_NONE &&
-                                                     hashType != ScriptOpCodes.SIGHASH_SINGLE)
-            throw new VerificationException("Unsupported signature hash type");
+        if (hashType != ScriptOpCodes.SIGHASH_ALL &&
+                        hashType != ScriptOpCodes.SIGHASH_NONE &&
+                        hashType != ScriptOpCodes.SIGHASH_SINGLE)
+            hashType = ScriptOpCodes.SIGHASH_ALL;
         //
         // Serialize the version
         //
-        Utils.uint32ToByteStreamLE(txVersion, outStream);
+        outBuffer.putInt(txVersion);
         //
         // Serialize the inputs
         //
@@ -441,13 +492,12 @@ public class Transaction {
         } else {
             sigInputs = txInputs;
         }
-        outStream.write(VarInt.encode(sigInputs.size()));
+        outBuffer.putVarInt(sigInputs.size());
         byte[] emptyScriptBytes = new byte[0];
-        for (TransactionInput txInput : sigInputs) {
+        for (TransactionInput txInput : sigInputs)
             txInput.serializeForSignature(index, hashType,
                                           (txInput.getIndex()==index?subScriptBytes:emptyScriptBytes),
-                                          outStream);
-        }
+                                          outBuffer);
         //
         // Serialize the outputs
         //
@@ -455,30 +505,30 @@ public class Transaction {
             //
             // There are no outputs for SIGHASH_NONE
             //
-            outStream.write(0);
+            outBuffer.putVarInt(0);
         } else if (hashType == ScriptOpCodes.SIGHASH_SINGLE) {
             //
             // The output list is resized to the input index+1
             //
             if (txOutputs.size() <= index)
                 throw new VerificationException("Input index out-of-range for SIGHASH_SINGLE");
-            outStream.write(VarInt.encode(index+1));
+            outBuffer.putVarInt(index+1);
             for (TransactionOutput txOutput : txOutputs) {
                 if (txOutput.getIndex() > index)
                     break;
-                txOutput.serializeForSignature(index, hashType, outStream);
+                txOutput.serializeForSignature(index, hashType, outBuffer);
             }
         } else {
             //
             // All outputs are serialized for SIGHASH_ALL
-            outStream.write(VarInt.encode(txOutputs.size()));
-            for (TransactionOutput txOutput : txOutputs) {
-                txOutput.serializeForSignature(index, hashType, outStream);
-            }
+            //
+            outBuffer.putVarInt(txOutputs.size());
+            for (TransactionOutput txOutput : txOutputs)
+                txOutput.serializeForSignature(index, hashType, outBuffer);
         }
         //
         // Serialize the lock time
         //
-        Utils.uint32ToByteStreamLE(txLockTime, outStream);
+        outBuffer.putUnsignedInt(txLockTime);
     }
 }

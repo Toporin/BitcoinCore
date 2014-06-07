@@ -15,9 +15,7 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.HashMap;
@@ -58,20 +56,18 @@ public class MessageHeader {
     public static final int GETHEADERS_CMD = 10;
     public static final int HEADERS_CMD = 11;
     public static final int INV_CMD = 12;
-    public static final int INVBLOCK_CMD = 13;
-    public static final int INVTX_CMD = 14;
-    public static final int MEMPOOL_CMD = 15;
-    public static final int MERKLEBLOCK_CMD = 16;
-    public static final int NOTFOUND_CMD = 17;
-    public static final int PING_CMD = 18;
-    public static final int PONG_CMD = 19;
-    public static final int REJECT_CMD = 20;
-    public static final int TX_CMD = 21;
-    public static final int VERACK_CMD = 22;
-    public static final int VERSION_CMD = 23;
+    public static final int MEMPOOL_CMD = 13;
+    public static final int MERKLEBLOCK_CMD = 14;
+    public static final int NOTFOUND_CMD = 15;
+    public static final int PING_CMD = 16;
+    public static final int PONG_CMD = 17;
+    public static final int REJECT_CMD = 18;
+    public static final int TX_CMD = 19;
+    public static final int VERACK_CMD = 20;
+    public static final int VERSION_CMD = 21;
 
     /** Message command map */
-    public static final Map<String, Integer> cmdMap = new HashMap<>(20);
+    public static final Map<String, Integer> cmdMap = new HashMap<>();
     static {
         cmdMap.put("addr", ADDR_CMD);
         cmdMap.put("alert", ALERT_CMD);
@@ -97,39 +93,51 @@ public class MessageHeader {
     }
 
     /**
-     * Builds the message header and then constructs a buffer containing the message header
+     * Build the message header and then construct a buffer containing the message header
      * and the message data
      *
-     * @param       cmd             Message command
-     * @param       msgData         Message data
-     * @return      Message buffer
+     * @param       cmd                 Message command
+     * @param       msgData             Message data
+     * @return                          Message buffer
      */
-    public static ByteBuffer buildMessage(String cmd, byte[] msgData) {
-        byte[] bytes = new byte[HEADER_LENGTH+msgData.length];
+    public static ByteBuffer buildMessage(String cmd, SerializedBuffer msgData) {
+        return buildMessage(cmd, msgData.toByteArray());
+    }
+
+    /**
+     * Build the message header and then construct a buffer containing the message header
+     * and the message data
+     *
+     * @param       cmd                 Message command
+     * @param       msgBytes            Message data
+     * @return                          Message buffer
+     */
+    public static ByteBuffer buildMessage(String cmd, byte[] msgBytes) {
+        byte[] bytes = new byte[HEADER_LENGTH + msgBytes.length];
         //
         // Set the magic number
         //
         Utils.uint32ToByteArrayLE(NetParams.MAGIC_NUMBER, bytes, 0);
         //
-        // Set the command name
+        // Set the command name (single-byte ASCII characters)
         //
         for (int i=0; i<cmd.length(); i++)
             bytes[4+i] = (byte)cmd.codePointAt(i);
         //
         // Set the payload length
         //
-        Utils.uint32ToByteArrayLE(msgData.length, bytes, 16);
+        Utils.uint32ToByteArrayLE(msgBytes.length, bytes, 16);
         //
         // Compute the payload checksum
         //
         // The message header contains a fixed checksum value when there is no payload
         //
-        if (msgData.length == 0) {
+        if (msgBytes.length == 0) {
             System.arraycopy(ZERO_LENGTH_CHECKSUM, 0, bytes, 20, 4);
         } else {
-            byte[] digest = Utils.doubleDigest(msgData);
+            byte[] digest = Utils.doubleDigest(msgBytes);
             System.arraycopy(digest, 0, bytes, 20, 4);
-            System.arraycopy(msgData, 0, bytes, 24, msgData.length);
+            System.arraycopy(msgBytes, 0, bytes, 24, msgBytes.length);
         }
         return ByteBuffer.wrap(bytes);
     }
@@ -139,18 +147,24 @@ public class MessageHeader {
      * is thrown if the message header is incomplete, has an incorrect magic value, or the
      * checksum is not correct.
      *
-     * @param       inStream                Message data stream
-     * @param       msgBytes                Message bytes
-     * @return                              Message command
+     * @param       msgBuffer               Message buffer
+     * @return      Message command
      * @throws      EOFException            End-of-data processing stream
-     * @throws      IOException             I/O error processing stream
      * @throws      VerificationException   Message verification failed
      */
-    public static String processMessage(ByteArrayInputStream inStream, byte[] msgBytes)
-                                        throws EOFException, IOException, VerificationException {
-        if (inStream.available() < HEADER_LENGTH)
-            throw new EOFException("End-of-data while processing message header");
-        inStream.skip(HEADER_LENGTH);
+    public static String processMessage(SerializedBuffer msgBuffer)
+                                            throws EOFException, VerificationException {
+        //
+        // Get the message bytes
+        //
+        byte[] msgBytes;
+        if (msgBuffer.getBufferStart() == 0)
+            msgBytes = msgBuffer.array();
+        else
+            msgBytes = msgBuffer.getBytes(msgBuffer.available());
+        if (msgBytes.length < HEADER_LENGTH)
+            throw new EOFException("Message header is too short");
+        msgBuffer.setPosition(HEADER_LENGTH);
         //
         // Verify the magic number
         //
@@ -163,7 +177,7 @@ public class MessageHeader {
         if (msgBytes.length > HEADER_LENGTH) {
             byte[] digest = Utils.doubleDigest(msgBytes, HEADER_LENGTH, msgBytes.length-HEADER_LENGTH);
             if (digest[0] != msgBytes[20] || digest[1] != msgBytes[21] ||
-                                             digest[2] != msgBytes[22] || digest[3] != msgBytes[23])
+                                digest[2] != msgBytes[22] || digest[3] != msgBytes[23])
                 throw new VerificationException("Message checksum incorrect");
         }
         //
@@ -173,7 +187,6 @@ public class MessageHeader {
         for (int i=4; i<16; i++) {
             if (msgBytes[i] == 0)
                 break;
-
             cmdString.appendCodePoint(((int)msgBytes[i])&0xff);
         }
         return cmdString.toString();
