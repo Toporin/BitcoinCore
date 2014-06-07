@@ -137,6 +137,85 @@ public class ECKey {
     }
 
     /**
+     * Checks if the public key is canonical
+     *
+     * @param       pubKeyBytes         Public key
+     * @return                          TRUE if the key is canonical
+     */
+    public static boolean isPubKeyCanonical(byte[] pubKeyBytes) {
+        boolean isValid = false;
+        if (pubKeyBytes.length == 33 && (pubKeyBytes[0] == (byte)0x02 || pubKeyBytes[0] == (byte)0x03)) {
+            isValid = true;
+        } else if (pubKeyBytes.length == 65 && pubKeyBytes[0] == (byte)0x04) {
+            isValid = true;
+        }
+        return isValid;
+    }
+
+    /**
+     * Checks if the signature is DER-encoded
+     *
+     * @param       encodedSig          Encoded signature
+     * @return                          TRUE if the signature is DER-encoded
+     */
+    public static boolean isSignatureCanonical(byte[] encodedSig) {
+        //
+        // DER-encoding requires that there is only one representation for a given
+        // encoding.  This means that no pad bytes are inserted for numeric values.
+        //
+        // An ASN.1 sequence is identified by 0x30 and each primitive by a type field.
+        // An integer is identified as 0x02.  Each field type is followed by a field length.
+        // For valid R and S values, the length is a single byte since R and S are both
+        // 32-byte or 33-byte values (a leading zero byte is added to ensure a positive
+        // value if the sign bit would otherwise bet set).
+        //
+        // Bitcoin appends that hash type to the end of the DER-encoded signature.  We require
+        // this to be a single byte for a canonical signature.
+        //
+        // The length is encoded in the lower 7 bits for lengths between 0 and 127 and the upper bit is 0.
+        // Longer length have the upper bit set to 1 and the lower 7 bits contain the number of bytes
+        // in the length.
+        //
+
+        //
+        // An ASN.1 sequence is 0x30 followed by the length
+        //
+        if (encodedSig.length<2 || encodedSig[0]!=(byte)0x30 || (encodedSig[1]&0x80)!=0)
+            return false;
+        //
+        // Get length of sequence
+        //
+        int length = ((int)encodedSig[1]&0x7f) + 2;
+        int offset = 2;
+        //
+        // Check R
+        //
+        if (offset+2>length || encodedSig[offset]!=(byte)0x02 || (encodedSig[offset+1]&0x80)!=0)
+            return false;
+        int rLength = (int)encodedSig[offset+1]&0x7f;
+        if (offset+rLength+2 > length)
+            return false;
+        if (encodedSig[offset+2]==0x00 && (encodedSig[offset+3]&0x80)==0)
+            return false;
+        offset += rLength + 2;
+        //
+        // Check S
+        //
+        if (offset+2>length || encodedSig[offset]!=(byte)0x02 || (encodedSig[offset+1]&0x80)!=0)
+            return false;
+        int sLength = (int)encodedSig[offset+1]&0x7f;
+        if (offset+sLength+2 > length)
+            return false;
+        if (encodedSig[offset+2]==0x00 && (encodedSig[offset+3]&0x80)==0)
+            return false;
+        offset += sLength + 2;
+        //
+        // There must be a single byte appended to the signature
+        //
+        return (offset == encodedSig.length-1);
+    }
+
+    /**
      * Returns the key creation time
      *
      * @return      Key creation time (seconds)
@@ -311,7 +390,18 @@ public class ECKey {
         //
         // Get the double SHA-256 hash of the signed contents
         //
-        byte[] contentsHash = Utils.doubleDigest(contents);
+        // A null contents will result in a hash with the first byte set to 1 and
+        // all other bytes set to 0.  This is needed to handle a bug in the reference
+        // client where it doesn't check for an error when serializing a transaction
+        // and instead uses the error code as the hash.
+        //
+        byte[] contentsHash;
+        if (contents != null) {
+            contentsHash = Utils.doubleDigest(contents);
+        } else {
+            contentsHash = new byte[32];
+            contentsHash[0] = 0x01;
+        }
         //
         // Verify the signature
         //
@@ -322,7 +412,7 @@ public class ECKey {
             signer.init(false, params);
             isValid = signer.verifySignature(contentsHash, sig.getR(), sig.getS());
         } catch (RuntimeException exc) {
-            throw new ECException("Runtime exception while verifying signature", exc);
+            throw new ECException("Exception while verifying signature: "+exc.getMessage());
         }
         return isValid;
     }
@@ -577,10 +667,7 @@ public class ECKey {
      */
     @Override
     public boolean equals(Object obj) {
-        boolean areEqual = false;
-        if (obj != null && (obj instanceof ECKey))
-            areEqual = Arrays.equals(pubKey, ((ECKey)obj).pubKey);
-        return areEqual;
+        return (obj!=null && (obj instanceof ECKey) && Arrays.equals(pubKey, ((ECKey)obj).pubKey));
     }
 
     /**
@@ -590,7 +677,6 @@ public class ECKey {
      */
     @Override
     public int hashCode() {
-        return ((int)pubKey[0]&0xff) | (((int)pubKey[1]&0xff)<<8) |
-                                       (((int)pubKey[2]&0xff)<<16) | (((int)pubKey[3]&0xff)<<24);
+        return Arrays.hashCode(pubKey);
     }
 }

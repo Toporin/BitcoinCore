@@ -19,12 +19,13 @@ import java.nio.ByteBuffer;
 
 /**
  * The 'getaddr' message is sent to a peer to request a list of known peers.  The response
- * is an 'addr' message.
+ * is an 'addr' message (the application should call AddressMessage.buildAddressMessage()
+ * when it receives a 'getaddr' message)
  */
 public class GetAddressMessage {
 
     /**
-     * Builds the 'getaddr' message
+     * Build the 'getaddr' message
      *
      * @param       peer            The remote peer
      * @return                      Message to send to peer

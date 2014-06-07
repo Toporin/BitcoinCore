@@ -15,11 +15,8 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,31 +43,32 @@ import java.util.List;
  */
 public class AddressMessage {
 
-    /** IPv6-encoded IPv4 address prefix */
-    public static final byte[] IPV6_PREFIX = new byte[] {
-            (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00,
-            (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0xff, (byte)0xff
-    };
-
     /**
      * Build an 'addr' message
      *
-     * We will include all peers that we have seen within the last hour
+     * We will include all peers that we have seen within the past 15 minutes as well as
+     * our own external listen address.  A maximum of 250 addresses will be included in
+     * the address message.
      *
-     * @param       peer            The destination peer or null for a broadcast message
-     * @param       addressList     Peer address list
-     * @return                      Message to be sent to the peer
+     * @param       peer                The destination peer or null for a broadcast message
+     * @param       addressList         Peer address list
+     * @param       localAddress        Local address or null if not listening for incoming messages
+     * @return                          Message to be sent to the peer
      */
-    public static Message buildAddressMessage(Peer peer, List<PeerAddress> addressList) {
+    public static Message buildAddressMessage(Peer peer, List<PeerAddress> addressList, PeerAddress localAddress) {
         //
-        // Create an address list containing peers that we have seen within the past hour.
+        // Create an address list containing peers that we have seen within the past 15 minutes.
         // The maximum length of the list is 250 entries.  Static addresses are not included
-        // in the list.
+        // in the list.  We will include our own address with a current timestamp if it is available.
         //
         long oldestTime = System.currentTimeMillis()/1000 - (15*60);
-        List<PeerAddress> addresses = new ArrayList<>(addressList.size());
+        List<PeerAddress> addresses = new ArrayList<>(250);
+        if (localAddress != null) {
+            localAddress.setTimeStamp(oldestTime);
+            addresses.add(localAddress);
+        }
         for (PeerAddress address : addressList) {
-            if (addresses.size() == 250)
+            if (addresses.size() >= 250)
                 break;
             if (address.getTimeStamp() >= oldestTime && !address.isStatic())
                 addresses.add(address);
@@ -78,93 +76,53 @@ public class AddressMessage {
         //
         // Build the message payload
         //
-        byte[] varCount = VarInt.encode(addresses.size());
-        byte[] msgData = new byte[addresses.size()*30+varCount.length];
-        System.arraycopy(varCount, 0, msgData, 0, varCount.length);
-        int offset = varCount.length;
-        for (PeerAddress address : addresses) {
-            Utils.uint32ToByteArrayLE(address.getTimeStamp(), msgData, offset);
-            Utils.uint64ToByteArrayLE(address.getServices(), msgData, offset+4);
-            offset += 12;
-            byte[] addrBytes = address.getAddress().getAddress();
-            if (addrBytes.length == 16) {
-                System.arraycopy(addrBytes, 0, msgData, offset, 16);
-            } else {
-                System.arraycopy(IPV6_PREFIX, 0, msgData, offset, 12);
-                System.arraycopy(addrBytes, 0, msgData, offset+12, 4);
-            }
-            offset += 16;
-            int port = address.getPort();
-            msgData[offset] = (byte)(port>>8);
-            msgData[offset+1] = (byte)port;
-            offset += 2;
-        }
+        int bufferLength = addresses.size()*PeerAddress.PEER_ADDRESS_SIZE + 5;
+        SerializedBuffer msgBuffer = new SerializedBuffer(bufferLength);
+        msgBuffer.putVarInt(addresses.size())
+                 .putBytes(addresses);
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("addr", msgData);
+        ByteBuffer buffer = MessageHeader.buildMessage("addr", msgBuffer);
         return new Message(buffer, peer, MessageHeader.ADDR_CMD);
     }
 
     /**
-     * Process an 'addr' message and return the address list
+     * Process an 'addr' message
+     *
+     * Addresses that were seen within the previous 15 minutes will be included in the address
+     * list.  The processAddresses() inventory handler will then be notified that new addresses
+     * have been received.
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @param       invHandler              Inventory handler
-     * @return                              Peer address list
+     * @param       inBuffer                Message buffer
+     * @param       msgListener             Message listener or null
      * @throws      EOFException            Serialized byte stream is too short
-     * @throws      IOException             Error reading from input stream
      * @throws      VerificationException   Message contains more than 1000 entries
      */
-    public static List<PeerAddress> processAddressMessage(Message msg, ByteArrayInputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
-        byte[] bytes = new byte[30];
-        byte[] addr4Bytes = new byte[4];
-        byte[] addr6Bytes = new byte[16];
-        long oldestTime = System.currentTimeMillis()/1000 - (15*60);
+    public static void processAddressMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
         // Get the address count
         //
-        int addrCount = new VarInt(inStream).toInt();
+        int addrCount = inBuffer.getVarInt();
         if (addrCount < 0 || addrCount > 1000)
             throw new VerificationException("More than 1000 addresses in 'addr' message");
+        //
+        // Build the address list.  We will not include addresses that were not seen within
+        // the previous 15 minutes.
+        //
+        long oldestTime = System.currentTimeMillis()/1000 - (15*60);
         List<PeerAddress> addresses = new ArrayList<>(addrCount);
-        //
-        // Process the addresses and keep any addresses that have been seen within the
-        // past hour and provide network node services
-        //
         for (int i=0; i<addrCount; i++) {
-            int count = inStream.read(bytes);
-            if (count < 30)
-                throw new EOFException("End-of-data on 'addr' message");
-            long timeSeen = Utils.readUint32LE(bytes, 0);
-            if (timeSeen < oldestTime)
-                continue;
-            long services = Utils.readUint64LE(bytes, 4);
-            if ((services&NetParams.NODE_NETWORK) == 0)
-                continue;
-            boolean ipv4 = true;
-            for (int j=0; j<12; j++) {
-                if (bytes[j+12] != IPV6_PREFIX[j]) {
-                    ipv4 = false;
-                    break;
-                }
-            }
-            InetAddress address;
-            if (ipv4) {
-                System.arraycopy(bytes, 24, addr4Bytes, 0, 4);
-                address = InetAddress.getByAddress(addr4Bytes);
-            } else {
-                System.arraycopy(bytes, 12, addr6Bytes, 0, 16);
-                address = InetAddress.getByAddress(addr6Bytes);
-            }
-            int port = (((int)bytes[28]&0xff)<<8) | ((int)bytes[29]&0xff);
-            PeerAddress peerAddress = new PeerAddress(address, port, timeSeen);
-            peerAddress.setServices(services);
-            addresses.add(peerAddress);
+            PeerAddress address = new PeerAddress(inBuffer);
+            if (address.getTimeStamp() > oldestTime)
+                addresses.add(new PeerAddress(inBuffer));
         }
-        return addresses;
+        //
+        // Notify the application message listener
+        //
+        if (!addresses.isEmpty() && msgListener != null)
+            msgListener.processAddresses(addresses);
     }
 }

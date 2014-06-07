@@ -15,9 +15,7 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,40 +53,40 @@ public class Alert {
     private final byte[] signature;
 
     /** Alert version */
-    private int version;
+    private final int version;
 
     /** Relay until time */
-    private long relayTime;
+    private final long relayTime;
 
     /** Expiration time */
-    private long expireTime;
+    private final long expireTime;
 
     /** Alert ID */
-    private int alertID;
+    private final int alertID;
 
     /** Cancel ID */
-    private int cancelID;
+    private final int cancelID;
 
     /** Cancel set */
-    private List<Integer> cancelSet;
+    private final List<Integer> cancelSet;
 
     /** Min applicable version */
-    private int minVersion;
+    private final int minVersion;
 
     /** Max applicable version */
-    private int maxVersion;
+    private final int maxVersion;
 
     /** Subversion */
-    private List<String> subVersions;
+    private final List<String> subVersions;
 
     /** Priority */
-    private int priority;
+    private final int priority;
 
     /** Comment */
-    private String comment;
+    private final String comment;
 
     /** Message */
-    private String message;
+    private final String message;
 
     /** Cancel status */
     private boolean isCanceled;
@@ -99,110 +97,50 @@ public class Alert {
      * @param       payload             Alert payload
      * @param       signature           Alert signature
      * @throws      EOFException        End-of-data while processing payload
-     * @throws      IOException         Error while reading serialized data
      */
-    public Alert(byte[] payload, byte[] signature) throws EOFException, IOException {
+    public Alert(byte[] payload, byte[] signature) throws EOFException {
         this.payload = payload;
         this.signature = signature;
         //
-        // Decode the payload
+        // Get version, relayTime, expireTime, alertID and cancelID
         //
-        try (ByteArrayInputStream inStream = new ByteArrayInputStream(payload)) {
-            byte[] bytes = new byte[28];
-            //
-            // Get version, relayTime, expireTime, alertID and cancelID
-            //
-            int count = inStream.read(bytes);
-            if (count != 28)
-                throw new EOFException("End-of-data processing payload");
-            version = (int)Utils.readUint32LE(bytes, 0);
-            relayTime = Utils.readUint64LE(bytes, 4);
-            expireTime = Utils.readUint64LE(bytes, 12);
-            alertID = (int)Utils.readUint32LE(bytes, 20);
-            cancelID = (int)Utils.readUint32LE(bytes, 24);
-            //
-            // Get the cancel set
-            //
-            int setCount = new VarInt(inStream).toInt();
-            if (setCount > 0) {
-                cancelSet = new ArrayList<>(setCount);
-                for (int i=0; i<setCount; i++) {
-                    count = inStream.read(bytes, 0, 4);
-                    if (count != 4)
-                        throw new EOFException("End-of-data processing payload");
-                    cancelSet.add((int)Utils.readUint32LE(bytes, 0));
-                }
-            } else {
-                cancelSet = new ArrayList<>(1);
-            }
-            //
-            // Get minVersion and maxVersion
-            //
-            count = inStream.read(bytes, 0, 8);
-            if (count != 8)
-                throw new EOFException("End-of-data processing payload");
-            minVersion = (int)Utils.readUint32LE(bytes, 0);
-            maxVersion = (int)Utils.readUint32LE(bytes, 4);
-            //
-            // Get the subversions
-            //
-            int subCount = new VarInt(inStream).toInt();
-            if (subCount == 0) {
-                subVersions = new ArrayList<>(1);
-            } else {
-                subVersions = new ArrayList<>(subCount);
-                for (int i=0; i<subCount; i++) {
-                    int strLength = new VarInt(inStream).toInt();
-                    StringBuilder subString = new StringBuilder(strLength);
-                    for (int j=0; j<strLength; j++) {
-                        int codePoint = inStream.read();
-                        if (codePoint < 0)
-                            throw new EOFException("End-of-data processing payload");
-                        subString.appendCodePoint(codePoint);
-                    }
-                    subVersions.add(subString.toString());
-                }
-            }
-            //
-            // Get the priority
-            //
-            count = inStream.read(bytes, 0, 4);
-            if (count != 4)
-                throw new EOFException("End-of-data processing payload");
-            priority = (int)Utils.readUint32LE(bytes, 0);
-            //
-            // Get the comment
-            //
-            int strLength = new VarInt(inStream).toInt();
-            if (strLength == 0) {
-                comment = "";
-            } else {
-                StringBuilder subString = new StringBuilder(strLength);
-                for (int i=0; i<strLength; i++) {
-                    int codePoint = inStream.read();
-                    if (codePoint < 0)
-                        throw new EOFException("End-of-data processing payload");
-                    subString.appendCodePoint(codePoint);
-                }
-                comment = subString.toString();
-            }
-            //
-            // Get the alert message
-            //
-            strLength = new VarInt(inStream).toInt();
-            if (strLength == 0) {
-                message = "";
-            } else {
-                StringBuilder subString = new StringBuilder(strLength);
-                for (int i=0; i<strLength; i++) {
-                    int codePoint = inStream.read();
-                    if (codePoint < 0)
-                        throw new EOFException("End-of-data processing payload");
-                    subString.appendCodePoint(codePoint);
-                }
-                message = subString.toString();
-            }
-        }
+        SerializedBuffer inBuffer = new SerializedBuffer(payload);
+        version = inBuffer.getInt();
+        relayTime = inBuffer.getLong();
+        expireTime = inBuffer.getLong();
+        alertID = inBuffer.getInt();
+        cancelID = inBuffer.getInt();
+        //
+        // Get the cancel set
+        //
+        int setCount = inBuffer.getVarInt();
+        cancelSet = new ArrayList<>(Math.max(setCount, 1));
+        for (int i=0; i<setCount; i++)
+            cancelSet.add(inBuffer.getInt());
+        //
+        // Get minVersion and maxVersion
+        //
+        minVersion = inBuffer.getInt();
+        maxVersion = inBuffer.getInt();
+        //
+        // Get the subversions
+        //
+        int subCount = inBuffer.getVarInt();
+        subVersions = new ArrayList<>(Math.max(subCount, 1));
+        for (int i=0; i<subCount; i++)
+            subVersions.add(inBuffer.getString());
+        //
+        // Get the priority
+        //
+        priority = inBuffer.getInt();
+        //
+        // Get the comment
+        //
+        comment = inBuffer.getString();
+        //
+        // Get the alert message
+        //
+        message = inBuffer.getString();
     }
 
     /**
@@ -343,7 +281,7 @@ public class Alert {
     /**
      * Sets the alert cancel status
      *
-     * @param       isCanceled      TRUE if the alert has been canceled
+     * @param       isCanceled          TRUE if the alert has been canceled
      */
     public void setCancel(boolean isCanceled) {
         this.isCanceled = isCanceled;

@@ -31,7 +31,7 @@ import java.util.Arrays;
  * EncryptedPrivateKey contains an encrypted private key, the initial vector used
  * to encrypt the key, and the salt used to derive the encryption key.
  */
-public class EncryptedPrivateKey {
+public class EncryptedPrivateKey implements ByteSerializable {
 
     /** Key length (bytes) */
     private static final int KEY_LENGTH = 32;
@@ -89,38 +89,39 @@ public class EncryptedPrivateKey {
      * Creates a new EncryptedPrivateKey from the serialized data
      *
      * @param       keyBytes            Serialized key
-     * @throws      EOFException        Unable to read from the input stream
+     * @throws      EOFException        End-of-data while processing serialized data
      */
     public EncryptedPrivateKey(byte[] keyBytes) throws EOFException {
-        //
-        // Get the enrypted private key bytes
-        //
-        VarInt varCount = new VarInt(keyBytes, 0);
-        int offset = varCount.getEncodedSize();
-        int length = varCount.toInt();
-        if (offset+length > keyBytes.length)
-            throw new EOFException("End-of-data while processing encrypted private key");
-        encKeyBytes = Arrays.copyOfRange(keyBytes, offset, offset+length);
-        offset += length;
-        //
-        // Get the initial vector
-        //
-        varCount = new VarInt(keyBytes, offset);
-        offset += varCount.getEncodedSize();
-        length = varCount.toInt();
-        if (offset+length > keyBytes.length)
-            throw new EOFException("End-of-data while processing encrypted private key");
-        iv = Arrays.copyOfRange(keyBytes, offset, offset+length);
-        offset += length;
-        //
-        // Get the salt used to derive the encryption key
-        //
-        varCount = new VarInt(keyBytes, offset);
-        offset += varCount.getEncodedSize();
-        length = varCount.toInt();
-        if (offset+length > keyBytes.length)
-            throw new EOFException("End-of-data while processing encrypted private key");
-        salt = Arrays.copyOfRange(keyBytes, offset, offset+length);
+        this(new SerializedBuffer(keyBytes));
+    }
+
+    /**
+     * Creates a new EncryptedPrivateKey from the serialized data
+     *
+     * @param       inBuffer            Input buffer
+     * @throws      EOFException        End-of-data while processing serialized data
+     */
+    public EncryptedPrivateKey(SerializedBuffer inBuffer) throws EOFException {
+        encKeyBytes = inBuffer.getBytes();
+        iv = inBuffer.getBytes();
+        salt = inBuffer.getBytes();
+    }
+
+    /**
+     * Get the byte stream for this encrypted private key
+     *
+     * @param       outBuffer           Output buffer
+     * @return                          Output buffer
+     */
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putVarInt(encKeyBytes.length)
+                 .putBytes(encKeyBytes)
+                 .putVarInt(iv.length)
+                 .putBytes(iv)
+                 .putVarInt(salt.length)
+                 .putBytes(salt);
+        return outBuffer;
     }
 
     /**
@@ -128,34 +129,9 @@ public class EncryptedPrivateKey {
      *
      * @return                      Byte array containing the serialized encrypted private key
      */
+    @Override
     public byte[] getBytes() {
-        byte[] keyLength = VarInt.encode(encKeyBytes.length);
-        byte[] ivLength = VarInt.encode(iv.length);
-        byte[] saltLength = VarInt.encode(salt.length);
-        byte[] keyBytes = new byte[keyLength.length+encKeyBytes.length+
-                                   ivLength.length+iv.length+
-                                   saltLength.length+salt.length];
-        //
-        // Process the encrypted private key
-        //
-        System.arraycopy(keyLength, 0, keyBytes, 0, keyLength.length);
-        int offset = keyLength.length;
-        System.arraycopy(encKeyBytes, 0, keyBytes, offset, encKeyBytes.length);
-        offset += encKeyBytes.length;
-        //
-        // Process the initial vector
-        //
-        System.arraycopy(ivLength, 0, keyBytes, offset, ivLength.length);
-        offset += ivLength.length;
-        System.arraycopy(iv, 0, keyBytes, offset, iv.length);
-        offset += iv.length;
-        //
-        // Process the salt
-        //
-        System.arraycopy(saltLength, 0, keyBytes, offset, saltLength.length);
-        offset += saltLength.length;
-        System.arraycopy(salt, 0, keyBytes, offset, salt.length);
-        return keyBytes;
+        return getBytes(new SerializedBuffer()).toByteArray();
     }
 
     /**

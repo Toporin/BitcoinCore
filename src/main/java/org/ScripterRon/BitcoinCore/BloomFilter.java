@@ -16,6 +16,10 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.EOFException;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * <p>A Bloom filter is a probabilistic data structure which can be sent to another client
  * so that it can avoid sending us transactions that aren't relevant to our set of keys.
@@ -38,7 +42,7 @@ package org.ScripterRon.BitcoinCore;
  *   1 byte     nFlags              Filter update flags
  * </pre>
  */
-public class BloomFilter {
+public class BloomFilter implements ByteSerializable {
 
     /** Bloom filter - Filter is not adjusted for matching outputs */
     public static final int UPDATE_NONE = 0;
@@ -56,16 +60,19 @@ public class BloomFilter {
     public static final int MAX_HASH_FUNCS = 50;
 
     /** Filter data */
-    private final byte[] filter;
+    private byte[] filter;
 
     /** Number of hash functions */
-    private final long nHashFuncs;
+    private int nHashFuncs;
 
     /** Random tweak nonce */
-    private final long nTweak = Double.valueOf(Math.random()*Long.MAX_VALUE).longValue();
+    private long nTweak = Double.valueOf(Math.random()*Long.MAX_VALUE).longValue();
 
     /** Filter update flags */
-    private final int nFlags = UPDATE_P2PUBKEY_ONLY;
+    private int nFlags = UPDATE_P2PUBKEY_ONLY;
+
+    /** Peer associated with this filter */
+    private Peer peer;
 
     /**
      * <p>Constructs a new Bloom Filter which will provide approximately the given false positive
@@ -101,21 +108,47 @@ public class BloomFilter {
     }
 
     /**
+     * Creates a Bloom filter from the serialized data
+     *
+     * @param       inBuffer                Input buffer
+     * @throws      EOFException            End-of-data processing input stream
+     * @throws      VerificationException   Verification error
+     */
+    public BloomFilter(SerializedBuffer inBuffer) throws EOFException, VerificationException {
+        filter = inBuffer.getBytes();
+        if (filter.length > MAX_FILTER_SIZE)
+            throw new VerificationException("Bloom filter is too large");
+        nHashFuncs = inBuffer.getInt();
+        if (nHashFuncs > MAX_HASH_FUNCS)
+            throw new VerificationException("Too many Bloom filter hash functions");
+        nTweak = inBuffer.getUnsignedInt();
+        nFlags = inBuffer.getByte();
+    }
+
+    /**
+     * Serialize the filter
+     *
+     * @param       outBuffer           Output buffer
+     * @return                          Output buffer
+     */
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putVarInt(filter.length)
+                 .putBytes(filter)
+                 .putInt(nHashFuncs)
+                 .putUnsignedInt(nTweak)
+                 .putByte((byte)nFlags);
+        return outBuffer;
+    }
+
+    /**
      * Serialize the filter and return a byte array
      *
      * @return                          Serialized filter
      */
-    public byte[] bitcoinSerialize() {
-        byte[] varLength = VarInt.encode(filter.length);
-        byte[] bytes = new byte[varLength.length+filter.length+4+4+1];
-        System.arraycopy(varLength, 0, bytes, 0, varLength.length);
-        int offset = varLength.length;
-        System.arraycopy(filter, 0, bytes, offset, filter.length);
-        offset += filter.length;
-        Utils.uint32ToByteArrayLE(nHashFuncs, bytes, offset);
-        Utils.uint32ToByteArrayLE(nTweak, bytes, offset+4);
-        bytes[offset+8] = (byte)nFlags;
-        return bytes;
+    @Override
+    public byte[] getBytes() {
+        return getBytes(new SerializedBuffer()).toByteArray();
     }
 
     /**
@@ -125,6 +158,24 @@ public class BloomFilter {
      */
     public int getFlags() {
         return nFlags;
+    }
+
+    /**
+     * Returns the peer associated with this filter
+     *
+     * @return      Peer
+     */
+    public Peer getPeer() {
+        return peer;
+    }
+
+    /**
+     * Sets the peer associated with this filter
+     *
+     * @param       peer            Peer
+     */
+    public void setPeer(Peer peer) {
+        this.peer = peer;
     }
 
     /**
@@ -163,9 +214,112 @@ public class BloomFilter {
      * @param       object          Object to insert
      */
     public void insert(byte[] object) {
-        for (int i=0; i<nHashFuncs; i++) {
+        for (int i=0; i<nHashFuncs; i++)
             Utils.setBitLE(filter, hash(i, object, 0, object.length));
+    }
+
+    /**
+     * Check a transaction against the Bloom filter for a match
+     *
+     * @param       tx              Transaction to check
+     * @return      TRUE if the transaction matches the filter
+     * @throws      EOFException if an error occurs while processing a script
+     */
+    public boolean checkTransaction(Transaction tx) throws EOFException {
+        boolean foundMatch = false;
+        Sha256Hash txHash = tx.getHash();
+        byte[] outpointData = new byte[36];
+        //
+        // Check the transaction hash
+        //
+        if (contains(txHash.getBytes()))
+            return true;
+        //
+        // Check transaction outputs
+        //
+        // Test each script data element.  If a match is found, add
+        // the serialized output point to the filter (if requested)
+        // so the peer will be notified if the output is later spent.
+        // We need to check all of the outputs since more than one transaction
+        // in the block may be of interest and we would need to
+        // update the filter for each one.
+        //
+        int index = 0;
+        List<TransactionOutput> outputs = tx.getOutputs();
+        for (TransactionOutput output : outputs) {
+            //
+            // Test the filter against each data element in the output script
+            //
+            byte[] scriptBytes = output.getScriptBytes();
+            boolean isMatch = Script.checkFilter(this, scriptBytes);
+            if (isMatch) {
+                foundMatch = true;
+                int type = Script.getPaymentType(scriptBytes);
+                //
+                // Update the filter with the outpoint if requested
+                //
+                if (nFlags==BloomFilter.UPDATE_ALL ||
+                            (nFlags==BloomFilter.UPDATE_P2PUBKEY_ONLY &&
+                                (type==ScriptOpCodes.PAY_TO_PUBKEY ||
+                                 type==ScriptOpCodes.PAY_TO_MULTISIG))) {
+                    System.arraycopy(Utils.reverseBytes(txHash.getBytes()), 0, outpointData, 0, 32);
+                    Utils.uint32ToByteArrayLE(index, outpointData, 32);
+                    insert(outpointData);
+                }
+            }
+            index++;
         }
+        if (foundMatch)
+            return true;
+        //
+        // Check transaction inputs
+        //
+        // Test each outpoint against the filter as well as each script data
+        // element.
+        //
+        List<TransactionInput> inputs = tx.getInputs();
+        for (TransactionInput input : inputs) {
+            //
+            // Test the filter against each data element in the input script
+            // (don't test the coinbase transaction)
+            //
+            if (!tx.isCoinBase()) {
+                byte[] scriptBytes = input.getScriptBytes();
+                if (scriptBytes.length > 0) {
+                    foundMatch = Script.checkFilter(this, scriptBytes);
+                    if (foundMatch)
+                        break;
+                }
+                //
+                // Check the filter against the outpoint
+                //
+                if (contains(input.getOutPoint().getBytes())) {
+                    foundMatch = true;
+                    break;
+                }
+            }
+        }
+        return foundMatch;
+    }
+
+    /**
+     * Find matching transactions in the supplied block
+     *
+     * @param       block           Block containing the transactions
+     * @return                      List of matching transactions (List size will be 0 if no matches found)
+     * @throws      EOFException    End-of-data while processing stream
+     */
+    public List<Sha256Hash> findMatches(Block block) throws EOFException {
+        List<Transaction> txList = block.getTransactions();
+        List<Sha256Hash> matches = new ArrayList<>(txList.size());
+        //
+        // Check each transaction in the block
+        //
+        for (Transaction tx : txList) {
+            if (checkTransaction(tx))
+                matches.add(tx.getHash());
+        }
+        return matches;
     }
 
     /**

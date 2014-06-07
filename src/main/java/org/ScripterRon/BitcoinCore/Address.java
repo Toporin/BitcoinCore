@@ -157,9 +157,6 @@ public class Address {
      */
     @Override
     public boolean equals(Object obj) {
-        boolean areEqual = false;
-        if (obj != null && (obj instanceof Address))
-            areEqual = Arrays.equals(hash, ((Address)obj).hash);
-        return areEqual;
+        return (obj!=null && (obj instanceof Address) && Arrays.equals(hash, ((Address)obj).hash));
     }
 }

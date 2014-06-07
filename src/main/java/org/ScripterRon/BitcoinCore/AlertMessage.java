@@ -15,9 +15,8 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * <p>The 'alert' message is sent out by the development team to notify all peers in the network
@@ -54,34 +53,46 @@ public class AlertMessage {
         (byte)0x84};
 
     /**
+     * Create an 'alert' message
+     *
+     * @param       peer                    Destination peer or null for a broadcast message
+     * @param       alert                   The alert
+     * @return                              The 'alert' message
+     */
+    public static Message buildAlertMessage(Peer peer, Alert alert) {
+        //
+        // Build the message data
+        //
+        SerializedBuffer msgData = new SerializedBuffer();
+        msgData.putVarInt(alert.getPayload().length)
+               .putBytes(alert.getPayload())
+               .putVarInt(alert.getSignature().length)
+               .putBytes(alert.getSignature());
+        //
+        // Build the message
+        //
+        ByteBuffer buffer = MessageHeader.buildMessage("alert", msgData);
+        Message msg = new Message(buffer, peer, MessageHeader.ALERT_CMD);
+        msg.setAlert(alert);
+        return msg;
+    }
+
+    /**
      * Process an 'alert' message
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @return                              Alert
-     * @throws      EOFException            End-of-data while processing message data
-     * @throws      IOException             Unable to read message data
-     * @throws      VerificationException   Message verification failed
+     * @param       inBuffer                Message buffer
+     * @param       msgListener             Message listener or null
+     * @throws      EOFException            Serialized byte stream is too short
+     * @throws      VerificationException   Message contains more than 1000 entries
      */
-    public static Alert processAlertMessage(Message msg, ByteArrayInputStream inStream)
-                                            throws EOFException, IOException, VerificationException {
+    public static void processAlertMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                           throws EOFException, VerificationException {
         //
         // Process the message data
         //
-        int payLength = new VarInt(inStream).toInt();
-        if (payLength < 0 || payLength > 1000)
-            throw new VerificationException("Alert message payload is longer than 1000 bytes");
-        byte[] payload = new byte[payLength];
-        int count = inStream.read(payload);
-        if (count != payLength)
-            throw new EOFException("End-of-data while processing 'alert' message");
-        int sigLength = new VarInt(inStream).toInt();
-        if (sigLength < 0 || sigLength > 80)
-            throw new EOFException("Signature is longer than 80 bytes");
-        byte[] signature = new byte[sigLength];
-        count = inStream.read(signature);
-        if (count != sigLength)
-            throw new EOFException("End-of-data while processing 'alert' message");
+        byte[] payload = inBuffer.getBytes();
+        byte[] signature = inBuffer.getBytes();
         //
         // Verify the signature
         //
@@ -95,8 +106,9 @@ public class AlertMessage {
         if (!isValid)
             throw new VerificationException("Alert signature is not valid");
         //
-        // Create the alert
+        // Notify the application message listener
         //
-        return new Alert(payload, signature);
+        if (msgListener != null)
+            msgListener.processAlert(new Alert(payload, signature));
     }
 }

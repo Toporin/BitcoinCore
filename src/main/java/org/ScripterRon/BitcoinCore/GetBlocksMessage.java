@@ -15,7 +15,9 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.EOFException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,7 +31,7 @@ import java.util.List;
  *   4 bytes    Version             Negotiated protocol version
  *   VarInt     Count               Number of locator hash entries
  *   Variable   Entries             Locator hash entries
- *  32 bytes    Stop                Hash of the last desired block or zero to get as many as possible
+ *   32 bytes   Stop                Hash of the last desired block or zero to get as many as possible
  * </pre>
  */
 public class GetBlocksMessage {
@@ -38,30 +40,53 @@ public class GetBlocksMessage {
      * Build a 'getblocks' message
      *
      * @param       peer            Destination peer
-     * @param       invList         Block hash list
+     * @param       blockList       Block hash list
+     * @param       stopBlock       Stop block hash (Sha256Hash.ZERO to get all blocks)
      * @return                      Message to send to the peer
      */
-    public static Message buildGetBlocksMessage(Peer peer, List<Sha256Hash> invList) {
+    public static Message buildGetBlocksMessage(Peer peer, List<Sha256Hash> blockList, Sha256Hash stopBlock) {
         //
         // Build the message payload
         //
         // The protocol version will be set to the lesser of our version and the peer version
-        // The stop locator will be set to zero since we don't know the network chain head.
         //
-        int varCount = invList.size();
-        byte[] varBytes = VarInt.encode(varCount);
-        byte[] msgData = new byte[4+varBytes.length+varCount*32+32];
-        Utils.uint32ToByteArrayLE(Math.min(NetParams.PROTOCOL_VERSION, peer.getVersion()), msgData, 0);
-        System.arraycopy(varBytes, 0, msgData, 4, varBytes.length);
-        int offset = 4+varBytes.length;
-        for (Sha256Hash blockHash : invList) {
-            System.arraycopy(Utils.reverseBytes(blockHash.getBytes()), 0, msgData, offset, 32);
-            offset+=32;
-        }
+        SerializedBuffer msgBuffer = new SerializedBuffer(blockList.size()*32+40);
+        msgBuffer.putInt(Math.min(peer.getVersion(), NetParams.PROTOCOL_VERSION))
+                 .putVarInt(blockList.size());
+        blockList.stream().forEach((hash) -> msgBuffer.putBytes(Utils.reverseBytes(hash.getBytes())));
+        msgBuffer.putBytes(Utils.reverseBytes(stopBlock.getBytes()));
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("getblocks", msgData);
+        ByteBuffer buffer = MessageHeader.buildMessage("getblocks", msgBuffer);
         return new Message(buffer, peer, MessageHeader.GETBLOCKS_CMD);
+    }
+
+    /**
+     * Process the 'getblocks' message and return an 'inv' message
+     *
+     * @param       msg                     Message
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
+     * @throws      EOFException            End-of-data processing stream
+     * @throws      VerificationException   Message verification failed
+     */
+    public static void processGetBlocksMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
+        //
+        // Process the message
+        //
+        int version = inBuffer.getInt();
+        if (version < NetParams.MIN_PROTOCOL_VERSION)
+            throw new VerificationException(String.format("Protocol version %d is not supported", version));
+        int count = inBuffer.getVarInt();
+        List<Sha256Hash> blockList = new ArrayList<>(count);
+        for (int i=0; i<count; i++)
+            blockList.add(new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32))));
+        Sha256Hash stopBlock = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
+        //
+        // Notify the message listener
+        //
+        msgListener.processGetBlocks(msg.getPeer(), version, blockList, stopBlock);
     }
 }
