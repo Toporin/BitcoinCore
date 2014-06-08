@@ -102,7 +102,7 @@ public class RejectMessage {
      * @throws      IOException     Error reading from input stream
      */
     public static void processRejectMessage(Message msg, ByteArrayInputStream inStream,
-                                    InventoryHandler invHandler)
+                                    MessageListener invHandler)
                                     throws EOFException, IOException {
         //
         // Get the command name

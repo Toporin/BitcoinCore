@@ -16,9 +16,6 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +51,7 @@ import java.util.List;
  *   Variable   flagBits        Flag bits packed 8 per byte, least significant bit first
  * </pre>
  */
-public class MerkleBranch {
+public class MerkleBranch implements ByteSerializable {
 
     /** Bits used while traversing the tree */
     private int bitsUsed;
@@ -74,49 +71,36 @@ public class MerkleBranch {
     /**
      * Creates a new Merkle branch from the serialized byte stream
      *
-     * @param       inStream                Input stream
+     * @param       inBuffer                Input buffer
      * @throws      EOFException            End-of-data processing input stream
-     * @throws      IOException             Unable to read input stream
      * @throws      VerificationException   Verification error
      */
-    public MerkleBranch(InputStream inStream) throws EOFException, IOException, VerificationException {
-        byte[] bytes = new byte[4];
+    public MerkleBranch(SerializedBuffer inBuffer) throws EOFException, VerificationException {
         //
         // Get the transaction count
         //
-        int count = inStream.read(bytes);
-        if (count < 4)
-            throw new EOFException("End-of-data while processing Merkle branch");
-        txCount = (int)Utils.readUint32LE(bytes, 0);
+        txCount = inBuffer.getInt();
         if (txCount < 1 || txCount > NetParams.MAX_BLOCK_SIZE/60)
             throw new VerificationException(String.format("Transaction count %d is not valid", txCount),
                                             NetParams.REJECT_INVALID);
         //
         // Get the node hashes
         //
-        int hashCount = new VarInt(inStream).toInt();
+        int hashCount = inBuffer.getVarInt();
         if (hashCount < 0 || hashCount > txCount)
             throw new VerificationException(String.format("Hash count %d is not valid", hashCount),
                                             NetParams.REJECT_INVALID);
         nodeHashes = new ArrayList<>(hashCount);
-        byte[] hashBytes = new byte[32];
-        for (int i=0; i<hashCount; i++) {
-            count = inStream.read(hashBytes);
-            if (count < 32)
-                throw new EOFException("End-of-data while processing Merkle branch");
-            nodeHashes.add(Utils.reverseBytes(hashBytes));
-        }
+        for (int i=0; i<hashCount; i++)
+            nodeHashes.add(Utils.reverseBytes(inBuffer.getBytes(32)));
         //
         // Get the node flags
         //
-        int flagCount = new VarInt(inStream).toInt();
+        int flagCount = inBuffer.getVarInt();
         if (flagCount < 1)
             throw new VerificationException(String.format("Flag count %d is not valid", flagCount),
                                             NetParams.REJECT_INVALID);
-        nodeFlags = new byte[flagCount];
-        count = inStream.read(nodeFlags);
-        if (count < flagCount)
-            throw new EOFException("End-of-data while processing Merkle branch");
+        nodeFlags = inBuffer.getBytes(flagCount);
     }
 
     /**
@@ -191,29 +175,29 @@ public class MerkleBranch {
     }
 
     /**
-     * Creates the serialized Merkle branch
+     * Write the serialized Merkle branch to the output buffer
      *
-     * @param       outStream       Output stream for the serialized data
-     * @throws      IOException     I/O error processing stream
+     * @param       outBuffer       Output buffer
+     * @return                      Output buffer
      */
-    public void bitcoinSerialize(OutputStream outStream) throws IOException {
-        //
-        // Serialize the transaction count
-        //
-        Utils.uint32ToByteStreamLE(txCount, outStream);
-        //
-        // Serialize the node hashes
-        //
-        byte[] varCount = VarInt.encode(nodeHashes.size());
-        outStream.write(varCount);
-        for (byte[] hash : nodeHashes)
-            outStream.write(Utils.reverseBytes(hash));
-        //
-        // Write the bit flags
-        //
-        varCount = VarInt.encode(nodeFlags.length);
-        outStream.write(varCount);
-        outStream.write(nodeFlags);
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putInt(txCount)
+                 .putVarInt(nodeHashes.size());
+        nodeHashes.stream().forEach((hash) -> outBuffer.putBytes(hash));
+        outBuffer.putVarInt(nodeFlags.length)
+                 .putBytes(nodeFlags);
+        return outBuffer;
+    }
+
+    /**
+     * Get the serialized byte array
+     *
+     * @return                      Serialized byte array
+     */
+    @Override
+    public byte[] getBytes() {
+        return getBytes(new SerializedBuffer(nodeHashes.size()*32+nodeFlags.length+12)).toByteArray();
     }
 
     /**

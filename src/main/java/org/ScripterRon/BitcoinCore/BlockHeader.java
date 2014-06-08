@@ -17,6 +17,7 @@ package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
 import java.math.BigInteger;
+import java.util.List;
 
 /**
  * BlockHeader contains the block header.  It is used to validate transactions sent to us
@@ -35,7 +36,7 @@ import java.math.BigInteger;
  *   4 bytes        Nonce               The nonce used to generate the required hash
  *</pre>
  */
-public class BlockHeader {
+public class BlockHeader implements ByteSerializable {
 
     /** Block header length */
     public static final int HEADER_SIZE = 80;
@@ -64,6 +65,9 @@ public class BlockHeader {
     /** Nonce */
     private final int nonce;
 
+    /** Matched transactions */
+    private List<Sha256Hash> matches;
+
     /**
      * Create a new BlockHeader
      *
@@ -90,21 +94,24 @@ public class BlockHeader {
      * Create a BlockHeader from the serialized block header
      *
      * @param       bytes                   Serialized data
+     * @param       doVerify                TRUE to verify the block header structure
      * @throws      EOFException            Serialized data is too short
      * @throws      VerificationException   Block verification failed
      */
-    public BlockHeader(byte[] bytes) throws EOFException, VerificationException {
-        this(new SerializedBuffer(bytes));
+    public BlockHeader(byte[] bytes, boolean doVerify) throws EOFException, VerificationException {
+        this(new SerializedBuffer(bytes), doVerify);
     }
 
     /**
      * Create a BlockHeader from the serialized block header
      *
      * @param       inBuffer                Input buffer
+     * @param       doVerify                TRUE to verify the block header structure
      * @throws      EOFException            Serialized data is too short
      * @throws      VerificationException   Block verification failed
      */
-    public BlockHeader(SerializedBuffer inBuffer) throws EOFException, VerificationException {
+    public BlockHeader(SerializedBuffer inBuffer, boolean doVerify)
+                                            throws EOFException, VerificationException {
         if (inBuffer.available() < HEADER_SIZE)
             throw new EOFException("Header is too short");
         //
@@ -119,8 +126,8 @@ public class BlockHeader {
         version = inBuffer.getInt();
         prevHash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
         merkleRoot = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
-        blockTime = inBuffer.getInt();
-        targetDifficulty = inBuffer.getInt();
+        blockTime = inBuffer.getUnsignedInt();
+        targetDifficulty = inBuffer.getUnsignedInt();
         nonce = inBuffer.getInt();
         //
         // Ensure this block does in fact represent real work done.  If the difficulty is high enough,
@@ -129,21 +136,50 @@ public class BlockHeader {
         // The block hash must be less than or equal to the target difficulty (the difficulty increases
         // by requiring an increasing number of leading zeroes in the block hash)
         //
-        BigInteger target = Utils.decodeCompactBits(targetDifficulty);
-        if (target.signum() <= 0 || target.compareTo(NetParams.PROOF_OF_WORK_LIMIT) > 0)
-            throw new VerificationException("Target difficulty is not valid",
-                                            NetParams.REJECT_INVALID, blockHash);
-        BigInteger hash = blockHash.toBigInteger();
-        if (hash.compareTo(target) > 0)
-            throw new VerificationException("Block hash is higher than target difficulty",
-                                            NetParams.REJECT_INVALID, blockHash);
-        //
-        // Verify the block timestamp
-        //
-        long currentTime = System.currentTimeMillis()/1000;
-        if (blockTime > currentTime+NetParams.ALLOWED_TIME_DRIFT)
-            throw new VerificationException("Block timestamp is too far in the future",
-                                            NetParams.REJECT_INVALID, blockHash);
+        if (doVerify) {
+            BigInteger target = Utils.decodeCompactBits(targetDifficulty);
+            if (target.signum() <= 0 || target.compareTo(NetParams.PROOF_OF_WORK_LIMIT) > 0)
+                throw new VerificationException("Target difficulty is not valid",
+                                                NetParams.REJECT_INVALID, blockHash);
+            BigInteger hash = blockHash.toBigInteger();
+            if (hash.compareTo(target) > 0)
+                throw new VerificationException("Block hash is higher than target difficulty",
+                                                NetParams.REJECT_INVALID, blockHash);
+            //
+            // Verify the block timestamp
+            //
+            long currentTime = System.currentTimeMillis()/1000;
+            if (blockTime > currentTime+NetParams.ALLOWED_TIME_DRIFT)
+                throw new VerificationException("Block timestamp is too far in the future",
+                                                NetParams.REJECT_INVALID, blockHash);
+        }
+    }
+
+    /**
+     * Write the serialized block header to the output buffer
+     *
+     * @param       outBuffer           Output buffer
+     * @return                          Output buffer
+     */
+    @Override
+    public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
+        outBuffer.putInt(version)
+                 .putBytes(Utils.reverseBytes(prevHash.getBytes()))
+                 .putBytes(Utils.reverseBytes(merkleRoot.getBytes()))
+                 .putUnsignedInt(blockTime)
+                 .putUnsignedInt(targetDifficulty)
+                 .putInt(nonce);
+        return outBuffer;
+    }
+
+    /**
+     * Return the serialized bytes
+     *
+     * @return                          Byte array
+     */
+    @Override
+    public byte[] getBytes() {
+        return getBytes(new SerializedBuffer(HEADER_SIZE)).toByteArray();
     }
 
     /**
@@ -208,5 +244,23 @@ public class BlockHeader {
     public BigInteger getBlockWork() {
         BigInteger target = Utils.decodeCompactBits(targetDifficulty);
         return LARGEST_HASH.divide(target.add(BigInteger.ONE));
+    }
+
+    /**
+     * Returns the list of matched transactions or null if there are no matched transactions
+     *
+     * @return                          List of matched transactions
+     */
+    public List<Sha256Hash> getMatches() {
+        return matches;
+}
+
+    /**
+     * Sets the list of matched transactions
+     *
+     * @param       matches             List of matched transactions or null if there are no matched transactions
+     */
+    public void setMatches(List<Sha256Hash> matches) {
+        this.matches = matches;
     }
 }

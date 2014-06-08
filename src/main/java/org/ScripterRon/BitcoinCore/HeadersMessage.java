@@ -16,8 +16,9 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
-import java.io.InputStream;
-import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * <p>The 'headers' message is returned in response to a 'getheaders' message.
@@ -35,37 +36,51 @@ import java.io.IOException;
 public class HeadersMessage {
 
     /**
+     * Build the 'headers' message
+     *
+     * @param       peer            Destination peer
+     * @param       hdrList         List of block headers
+     * @return                      Headers message
+     */
+    public static Message buildHeadersMessage(Peer peer, List<BlockHeader> hdrList) {
+        SerializedBuffer msgBuffer = new SerializedBuffer(hdrList.size()*(BlockHeader.HEADER_SIZE+1)+4);
+        //
+        // Build the message data
+        //
+        msgBuffer.putVarInt(hdrList.size());
+        hdrList.stream().forEach((hdr) -> hdr.getBytes(msgBuffer).putByte((byte)0));
+        //
+        // Build the message
+        //
+        ByteBuffer buffer = MessageHeader.buildMessage("headers", msgBuffer);
+        return new Message(buffer, peer, MessageHeader.HEADERS_CMD);
+    }
+
+    /**
      * Process the 'headers' message
      *
      * @param       msg                     Message
-     * @param       inStream                Input stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            End-of-data encountered while processing input stream
-     * @throws      IOException             Unable to read the input stream
      * @throws      VerificationException   Verification error
      */
-    public static void processHeadersMessage(Message msg, InputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
+    public static void processHeadersMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
-        // Get the header count
+        // Build the block header list
         //
-        int hdrCount = new VarInt(inStream).toInt();
-        if (hdrCount < 0 || hdrCount > 2000)
+        int count = inBuffer.getVarInt();
+        if (count < 0 || count > 2000)
             throw new VerificationException("More than 2000 headers", NetParams.REJECT_INVALID);
-        //
-        // Process each block header
-        //
-        byte[] hdrData = new byte[BlockHeader.HEADER_SIZE];
-        for (int i=0; i<hdrCount; i++) {
-            int count = inStream.read(hdrData);
-            if (count != BlockHeader.HEADER_SIZE)
-                throw new EOFException("End-of-data processing headers");
-            int txCount = new VarInt(inStream).toInt();
-            if (txCount != 0)
-                throw new VerificationException("Transaction count is non-zero",
-                                                NetParams.REJECT_INVALID);
-            invHandler.processBlockHeader(new BlockHeader(hdrData));
+        List<BlockHeader> hdrList = new ArrayList<>(count);
+        for (int i=0; i<count; i++) {
+            hdrList.add(new BlockHeader(inBuffer, true));
+            inBuffer.getByte();
         }
+        //
+        // Notify the message listener
+        //
+        msgListener.processBlockHeaders(msg.getPeer(), hdrList);
     }
 }

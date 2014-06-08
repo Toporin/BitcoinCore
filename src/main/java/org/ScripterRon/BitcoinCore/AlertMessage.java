@@ -108,7 +108,6 @@ public class AlertMessage {
         //
         // Notify the application message listener
         //
-        if (msgListener != null)
-            msgListener.processAlert(new Alert(payload, signature));
+        msgListener.processAlert(msg.getPeer(), new Alert(payload, signature));
     }
 }

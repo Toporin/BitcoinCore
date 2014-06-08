@@ -151,7 +151,7 @@ public class PeerAddress implements ByteSerializable {
             else
                 address = InetAddress.getByAddress(addrBytes);
         } catch (UnknownHostException exc) {
-            throw new RuntimeException("Unexpected exception thrown by InetAddress.getByAddress", exc);
+            throw new RuntimeException("Unexpected exception thrown by InetAddress.getByAddress: "+exc.getMessage());
         }
     }
 
@@ -164,13 +164,14 @@ public class PeerAddress implements ByteSerializable {
     @Override
     public SerializedBuffer getBytes(SerializedBuffer buffer) {
         buffer.putInt((int)timeSeen)
-                .putLong(services);
+              .putLong(services);
         byte[] addrBytes = address.getAddress();
         if (addrBytes.length == 16)
             buffer.putBytes(addrBytes);
         else
-            buffer.putBytes(IPV6_PREFIX).putBytes(addrBytes);
-        buffer.putShort((short)port);
+            buffer.putBytes(IPV6_PREFIX)
+                  .putBytes(addrBytes);
+        buffer.putShort(port);
         return buffer;
     }
 

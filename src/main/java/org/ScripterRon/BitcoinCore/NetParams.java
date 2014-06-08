@@ -28,17 +28,20 @@ public class NetParams {
     /** Protocol version */
     public static final int PROTOCOL_VERSION = 70002;
 
-    /** Minimum acceptable protocol version (Bloom Filter support requires 70001 or later) */
-    public static final int MIN_PROTOCOL_VERSION = 70001;
+    /** Minimum acceptable protocol version */
+    public static int MIN_PROTOCOL_VERSION = 60001;
 
     /** Peer provides network services */
     public static final long NODE_NETWORK = 1;
 
     /** Our supported services */
-    public static final long SUPPORTED_SERVICES = 0;
+    public static long SUPPORTED_SERVICES = 0;
 
     /** Library identifier */
     public static String LIBRARY_NAME = "BitcoinCore:?.?";
+
+    /** Application identifier */
+    public static String APPLICATION_NAME = "??";
 
     /** Production network magic number */
     public static final long MAGIC_NUMBER_PRODNET = 0xd9b4bef9L;
@@ -154,10 +157,15 @@ public class NetParams {
      * library routines.
      *
      * @param       testNetwork             TRUE for the test network, FALSE for the production network
+     * @param       applicationName         Application name
+     * @param       minProtocolVersion      Minimum supported protocol version
+     * @param       supportedServices       Supported services
      * @throws      ClassNotFoundException  org.ScripterRon.BitcoinCore.NetParams class not found
      * @throws      IOException             Unable read application properties
      */
-    public static void configure(boolean testNetwork) throws ClassNotFoundException, IOException {
+    public static void configure(boolean testNetwork, int minProtocolVersion,
+                                            String applicationName, long supportedServices)
+                                            throws ClassNotFoundException, IOException {
         //
         // Initialize data arreas for the desired network
         //
@@ -178,7 +186,7 @@ public class NetParams {
         }
         PROOF_OF_WORK_LIMIT = Utils.decodeCompactBits(MAX_TARGET_DIFFICULTY);
         //
-        // Get the application build properties
+        // Get the library build properties
         //
         Class<?> thisClass = Class.forName("org.ScripterRon.BitcoinCore.NetParams");
         String applicationID;
@@ -192,5 +200,11 @@ public class NetParams {
             applicationVersion = applicationProperties.getProperty("application.version");
         }
         LIBRARY_NAME = String.format("%s:%s", applicationID, applicationVersion);
+        //
+        // Set the application properties
+        //
+        APPLICATION_NAME = applicationName;
+        MIN_PROTOCOL_VERSION = minProtocolVersion;
+        SUPPORTED_SERVICES = supportedServices;
     }
 }

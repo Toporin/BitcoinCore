@@ -69,7 +69,7 @@ public class PingMessage {
      * @throws      IOException         Unable to read input stream
      */
     public static void processPingMessage(Message msg, ByteArrayInputStream inStream,
-                                        InventoryHandler invHandler)
+                                        MessageListener invHandler)
                                         throws EOFException, IOException {
         byte[] bytes = new byte[8];
         //

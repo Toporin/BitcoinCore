@@ -15,7 +15,9 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.EOFException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,30 +41,58 @@ public class GetHeadersMessage {
      * Build a 'getheaderss' message
      *
      * @param       peer            Destination peer
-     * @param       invList         Block hash list
+     * @param       blockList       Block hash list
+     * @param       stopBlock       Stop block (Sha256Hash.ZERO_HASH to return all blocks)
      * @return                      Message to send to the peer
      */
-    public static Message buildGetHeadersMessage(Peer peer, List<Sha256Hash> invList) {
+    public static Message buildGetHeadersMessage(Peer peer, List<Sha256Hash> blockList, Sha256Hash stopBlock) {
         //
         // Build the message payload
         //
         // The protocol version will be set to the lesser of our version and the peer version
-        // The stop locator will be set to zero since we don't know the network chain head.
         //
-        int varCount = invList.size();
-        byte[] varBytes = VarInt.encode(varCount);
-        byte[] msgData = new byte[4+varBytes.length+varCount*32+32];
-        Utils.uint32ToByteArrayLE(Math.min(NetParams.PROTOCOL_VERSION, peer.getVersion()), msgData, 0);
-        System.arraycopy(varBytes, 0, msgData, 4, varBytes.length);
-        int offset = 4+varBytes.length;
-        for (Sha256Hash blockHash : invList) {
-            System.arraycopy(Utils.reverseBytes(blockHash.getBytes()), 0, msgData, offset, 32);
-            offset+=32;
-        }
+        SerializedBuffer msgBuffer = new SerializedBuffer(blockList.size()*32+40);
+        msgBuffer.putInt(Math.min(peer.getVersion(), NetParams.PROTOCOL_VERSION))
+                 .putVarInt(blockList.size());
+        blockList.stream().forEach((hash) -> msgBuffer.putBytes(Utils.reverseBytes(hash.getBytes())));
+        msgBuffer.putBytes(Utils.reverseBytes(stopBlock.getBytes()));
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("getheaders", msgData);
+        ByteBuffer buffer = MessageHeader.buildMessage("getheaders", msgBuffer);
         return new Message(buffer, peer, MessageHeader.GETHEADERS_CMD);
+    }
+
+    /**
+     * Process the 'getheaders' message
+     *
+     * @param       msg                     Message
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
+     * @throws      EOFException            Message stream is too short
+     * @throws      VerificationException   Message verification failed
+     */
+    public static void processGetHeadersMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
+        //
+        // Get the protocol version
+        //
+        int version = inBuffer.getInt();
+        if (version < NetParams.MIN_PROTOCOL_VERSION)
+            throw new VerificationException(String.format("Protocol version %d is not supported", version));
+        //
+        // Get the locator entries
+        //
+        int count = inBuffer.getVarInt();
+        if (count < 0 || count > 500)
+            throw new VerificationException(String.format("'getheaders' message contains more than 500 locators"));
+        List<Sha256Hash> blockList = new ArrayList<>(count);
+        for (int i=0; i<count; i++)
+            blockList.add(new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32))));
+        Sha256Hash stopBlock = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
+        //
+        // Notify the message listener
+        //
+        msgListener.processGetHeaders(msg.getPeer(), version, blockList, stopBlock);
     }
 }

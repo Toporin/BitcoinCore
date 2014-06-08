@@ -15,10 +15,9 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,16 +32,8 @@ import java.util.List;
  * <pre>
  *   Size       Field               Description
  *   ====       =====               ===========
- *   VarInt     Count               Number of inventory vectors
- *   Variable   InvVector           One or more inventory vectors
- * </pre>
- *
- * <p>Inventory Vector:</p>
- * <pre>
- *   Size       Field               Description
- *   ====       =====               ===========
- *   4 bytes    Type                0=Error, 1=Transaction, 2=Block
- *  32 bytes    Hash                Object hash
+ *   VarInt     Count               Number of inventory items
+ *   Variable   InvItems            One or more inventory items
  * </pre>
  */
 public class InventoryMessage {
@@ -51,63 +42,49 @@ public class InventoryMessage {
      * Build an 'inv' message
      *
      * @param       peer            Destination peer
-     * @param       type            Inventory type (INV_TX or INV_BLOCK)
-     * @param       hashList        Inventory hash list
+     * @param       itemList        Inventory item list
      * @return                      Message to send to the peer
      */
-    public static Message buildInventoryMessage(Peer peer, int type, List<Sha256Hash> hashList) {
-        byte[] varCount = VarInt.encode(hashList.size());
-        byte[] msgData = new byte[hashList.size()*36+varCount.length];
+    public static Message buildInventoryMessage(Peer peer, List<InventoryItem> itemList) {
         //
-        // Build the message payload
+        // Build the message data
         //
-        System.arraycopy(varCount, 0, msgData, 0, varCount.length);
-        int offset = varCount.length;
-        for (Sha256Hash hash : hashList) {
-            Utils.uint32ToByteArrayLE(type, msgData, offset);
-            System.arraycopy(Utils.reverseBytes(hash.getBytes()), 0, msgData, offset+4, 32);
-            offset += 36;
-        }
+        SerializedBuffer msgBuffer = new SerializedBuffer(itemList.size()*36+4);
+        msgBuffer.putVarInt(itemList.size());
+        itemList.stream().forEach((item) -> item.getBytes(msgBuffer));
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("inv", msgData);
-        return new Message(buffer, peer,
-                (type==NetParams.INV_BLOCK?MessageHeader.INVBLOCK_CMD:MessageHeader.INVTX_CMD));
+        ByteBuffer buffer = MessageHeader.buildMessage("inv", msgBuffer);
+        return new Message(buffer, peer, MessageHeader.INV_CMD);
     }
 
     /**
      * Process an 'inv' message.
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            End-of-data while processing input stream
-     * @throws      IOException             Unable to read input stream
      * @throws      VerificationException   Verification failed
      */
-    public static void processInventoryMessage(Message msg, ByteArrayInputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
-        byte[] bytes = new byte[36];
-        Peer peer = msg.getPeer();
+    public static void processInventoryMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
         // Get the number of inventory vectors (maximum of 1000 entries)
         //
-        int invCount = new VarInt(inStream).toInt();
-        if (invCount < 0 || invCount > 1000)
-            throw new VerificationException("More than 1000 entries in 'inv' message",
-                                            NetParams.REJECT_INVALID);
+        int count = inBuffer.getVarInt();
+        if (count < 0 || count > 1000)
+            throw new VerificationException("More than 1000 entries in 'inv' message", NetParams.REJECT_INVALID);
         //
-        // Process the inventory vectors
+        // Build the item list
         //
-        for (int i=0; i<invCount; i++) {
-            int count = inStream.read(bytes);
-            if (count < 36)
-                throw new EOFException("'inv' message is too short");
-            int type = (int)Utils.readUint32LE(bytes, 0);
-            Sha256Hash hash = new Sha256Hash(Utils.reverseBytes(bytes, 4, 32));
-            invHandler.requestInventory(peer, type, hash);
-        }
+        List<InventoryItem> itemList = new ArrayList<>(count);
+        for (int i=0; i<count; i++)
+            itemList.add(new InventoryItem(inBuffer));
+        //
+        // Notify the message listener
+        //
+        msgListener.requestInventory(msg.getPeer(), itemList);
     }
 }

@@ -1,6 +1,6 @@
 /**
  * Copyright 2011 Google Inc.
- * Copyright 2013-2014 Ronald W Hoffman
+ * Copyright 2013 Ronald W Hoffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public final class VarInt {
      */
     public VarInt(byte[]buf, int offset) throws EOFException {
         if (offset > buf.length)
-            throw new EOFException("Premature end-of-data while processing VarInt");
+            throw new EOFException("End-of-data while processing VarInt");
         int first = 0x00FF&(int)buf[offset];
         if (first < 253) {
             // 8 bits.
@@ -68,19 +68,19 @@ public final class VarInt {
         } else if (first == 253) {
             // 16 bits.
             if (offset+2 > buf.length)
-                throw new EOFException("Premature end-of-data while processing VarInt");
+                throw new EOFException("End-of-data while processing VarInt");
             value = (0x00FF&(int)buf[offset+1]) | ((0x00FF&(int)buf[offset+2])<<8);
             encodedSize = 3;
         } else if (first == 254) {
             // 32 bits.
             if (offset+5 > buf.length)
-                throw new EOFException("Premature end-of-data while processing VarInt");
+                throw new EOFException("End-of-data while processing VarInt");
             value = Utils.readUint32LE(buf, offset+1);
             encodedSize = 5;
         } else {
             // 64 bits.
             if (offset+9 > buf.length)
-                throw new EOFException("Premature end-of-data while processing VarInt");
+                throw new EOFException("End-of-data while processing VarInt");
             value = Utils.readUint64LE(buf, offset+1);
             encodedSize = 9;
         }
@@ -97,7 +97,8 @@ public final class VarInt {
         int count;
         int first = in.read();
         if (first < 0)
-            throw new EOFException("Premature end-of-data while processing VarInt");
+            throw new EOFException("End-of-data while processing VarInt");
+
         if (first < 253) {
             // 8 bits.
             value = first;
@@ -107,7 +108,7 @@ public final class VarInt {
             byte[] buf = new byte[2];
             count = in.read(buf, 0, 2);
             if (count < 2)
-                throw new EOFException("Premature end-of-data while processing VarInt");
+                throw new EOFException("End-of-data while processing VarInt");
 
             value = (0x00FF&(int)buf[0]) | ((0x00FF&(int)buf[1])<<8);
             encodedSize = 3;
@@ -116,7 +117,7 @@ public final class VarInt {
             byte[] buf = new byte[4];
             count = in.read(buf, 0, 4);
             if (count < 4)
-                throw new EOFException("Premature end-of-data while processing VarInt");
+                throw new EOFException("End-of-data while processing VarInt");
 
             value = Utils.readUint32LE(buf, 0);
             encodedSize = 5;
@@ -125,7 +126,7 @@ public final class VarInt {
             byte[] buf = new byte[8];
             count = in.read(buf, 0, 8);
             if (count < 8)
-                throw new EOFException("Premature end-of-data while processing VarInt");
+                throw new EOFException("End-of-data while processing VarInt");
 
             value = Utils.readUint64LE(buf, 0);
             encodedSize = 9;

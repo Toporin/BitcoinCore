@@ -29,16 +29,8 @@ import java.util.List;
  * <pre>
  *   Size       Field               Definition
  *   ====       =====               ==========
- *   VarInt     Count               Number of inventory vectors
- *   Variable   InvVectors          One or more inventory vectors
- * </pre>
- *
- * <p>Inventory Vector:</p>
- * <pre>
- *   Size       Field               Description
- *   ====       =====               ===========
- *   4 bytes    Type                0=Error, 1=Transaction, 2=Block, 3=Filtered block
- *  32 bytes    Hash                Object hash
+ *   VarInt     Count               Number of inventory items
+ *   Variable   InvItems            One or more inventory items
  * </pre>
  */
 public class GetDataMessage {
@@ -58,7 +50,7 @@ public class GetDataMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("getdata", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.INV_CMD);
+        return new Message(buffer, peer, MessageHeader.GETDATA_CMD);
     }
 
     /**

@@ -21,6 +21,15 @@ import java.io.EOFException;
  * InventoryItem represents an inventory item (block or transaction).  Inventory items
  * are used in messages that announce the availability of an item or request an item
  * from a peer.
+ *
+ * <p>Inventory Item:</p>
+ * <pre>
+ *   Size       Field               Description
+ *   ====       =====               ===========
+ *   4 bytes    Type                0=Error, 1=Transaction, 2=Block, 3=Filtered Block
+ *  32 bytes    Hash                Object hash
+ * </pre>
+
  */
 public class InventoryItem implements ByteSerializable {
 

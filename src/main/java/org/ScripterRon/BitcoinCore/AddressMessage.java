@@ -52,7 +52,7 @@ public class AddressMessage {
      *
      * @param       peer                The destination peer or null for a broadcast message
      * @param       addressList         Peer address list
-     * @param       localAddress        Local address or null if not listening for incoming messages
+     * @param       localAddress        Local address or null if not accepting inbound connections
      * @return                          Message to be sent to the peer
      */
     public static Message buildAddressMessage(Peer peer, List<PeerAddress> addressList, PeerAddress localAddress) {
@@ -123,6 +123,6 @@ public class AddressMessage {
         // Notify the application message listener
         //
         if (!addresses.isEmpty() && msgListener != null)
-            msgListener.processAddresses(addresses);
+            msgListener.processAddresses(msg.getPeer(), addresses);
     }
 }

@@ -16,8 +16,7 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
-import java.io.InputStream;
-import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,42 +45,63 @@ import java.util.List;
 public class MerkleBlockMessage {
 
     /**
+     * Builds the 'merkleblock' message
+     *
+     * @param       peer            Destination peer
+     * @param       block           Block to be sent to the peer
+     * @param       indexList       List of matching transaction indexes
+     * @return                      Message to be sent to the peer
+     */
+    public static Message buildMerkleBlockMessage(Peer peer, Block block, List<Integer> indexList) {
+        //
+        // Create the Merkle branch
+        //
+        List<Transaction> txList = block.getTransactions();
+        List<byte[]> merkleTree = block.getMerkleTree();
+        MerkleBranch branch = new MerkleBranch(txList.size(), indexList, merkleTree);
+        //
+        // Create the message data
+        //
+        SerializedBuffer msgBuffer = new SerializedBuffer(BlockHeader.HEADER_SIZE+txList.size()*32);
+        block.getHeaderBytes(msgBuffer);
+        branch.getBytes(msgBuffer);
+        //
+        // Create the message
+        //
+        ByteBuffer buffer = MessageHeader.buildMessage("merkleblock", msgBuffer);
+        return new Message(buffer, peer, MessageHeader.MERKLEBLOCK_CMD);
+    }
+    /**
      * Processes the 'merkleblock' message
      *
      * @param       msg                     Message
-     * @param       inStream                Input stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            End-of-data processing input stream
-     * @throws      IOException             Unable to read input stream
      * @throws      VerificationException   Verification error
      */
-    public static void processMerkleBlockMessage(Message msg, InputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
+    public static void processMerkleBlockMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
         // Get the block header
         //
-        byte[] hdrData = new byte[BlockHeader.HEADER_SIZE];
-        int count = inStream.read(hdrData);
-        if (count != BlockHeader.HEADER_SIZE)
-            throw new EOFException("End-of-data processing 'merkleblock' data");
-        BlockHeader blockHeader = new BlockHeader(hdrData);
+        BlockHeader blockHeader = new BlockHeader(inBuffer, true);
         //
         // Get the matching transactions from the Merkle branch
         //
-        MerkleBranch merkleBranch = new MerkleBranch(inStream);
+        MerkleBranch merkleBranch = new MerkleBranch(inBuffer);
         List<Sha256Hash> matches = new LinkedList<>();
         Sha256Hash merkleRoot = merkleBranch.calculateMerkleRoot(matches);
         if (!merkleRoot.equals(blockHeader.getMerkleRoot()))
             throw new VerificationException("Merkle root is incorrect", NetParams.REJECT_INVALID);
         blockHeader.setMatches(matches);
         //
-        // Request completed
+        // Notify the message listener that a request has completed
         //
-        invHandler.requestCompleted(msg.getPeer(), NetParams.INV_FILTERED_BLOCK, blockHeader.getHash());
+        msgListener.requestCompleted(msg.getPeer(), NetParams.INV_FILTERED_BLOCK, blockHeader.getHash());
         //
-        // Process the block
+        // Notify the message listener that a block is ready for processing
         //
-        invHandler.processBlockHeader(blockHeader);
+        msgListener.processMerkleBlock(msg.getPeer(), blockHeader);
     }
 }

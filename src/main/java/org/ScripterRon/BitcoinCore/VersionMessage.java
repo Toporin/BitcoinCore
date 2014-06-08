@@ -15,10 +15,12 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * <p>The 'version' message is exchanged when two nodes connect.  It identifies
@@ -59,42 +61,67 @@ public class VersionMessage {
      * Builds a 'version' message
      *
      * @param       peer                The remote peer
+     * @param       localAddress        Local listen address or null if not accepting inbound connections
      * @param       chainHeight         Current chain height
-     * @param       applicationName     Application name
      * @return                          Message to send to remote peer
      */
-    public static Message buildVersionMessage(Peer peer, int chainHeight, String applicationName) {
+    public static Message buildVersionMessage(Peer peer, PeerAddress localAddress, int chainHeight) {
+        //
+        // Set the protocol version, supported services and current time
+        //
+        SerializedBuffer msgBuffer = new SerializedBuffer();
+        msgBuffer.putInt(NetParams.PROTOCOL_VERSION)
+                 .putLong(NetParams.SUPPORTED_SERVICES)
+                 .putLong(System.currentTimeMillis()/1000);
+        //
+        // Set the destination address
+        //
         PeerAddress peerAddress = peer.getAddress();
         byte[] dstAddress = peerAddress.getAddress().getAddress();
-        int dstPort = peerAddress.getPort();
-        String agentName = String.format("/%s/%s/", applicationName, NetParams.LIBRARY_NAME);
-        //
-        // Build the 'version' payload
-        //
-        byte[] msgData = new byte[4+8+8+26+26+8+1+agentName.length()+4+1];
-        Utils.uint32ToByteArrayLE(NetParams.PROTOCOL_VERSION, msgData, 0);
-        Utils.uint64ToByteArrayLE(NetParams.SUPPORTED_SERVICES, msgData, 4);
-        Utils.uint64ToByteArrayLE(System.currentTimeMillis()/1000, msgData, 12);
+        msgBuffer.skip(8);
         if (dstAddress.length == 16) {
-            System.arraycopy(dstAddress, 0, msgData, 28, 16);
+            msgBuffer.putBytes(dstAddress);
         } else {
-            System.arraycopy(AddressMessage.IPV6_PREFIX, 0, msgData, 28, 12);
-            System.arraycopy(dstAddress, 0, msgData, 40, 4);
+            msgBuffer.putBytes(PeerAddress.IPV6_PREFIX);
+            msgBuffer.putBytes(dstAddress);
         }
-        msgData[44] = (byte)(dstPort>>8);
-        msgData[45] = (byte)dstPort;
-        System.arraycopy(AddressMessage.IPV6_PREFIX, 0, msgData, 54, 12);
-        Utils.uint64ToByteArrayLE(NODE_ID, msgData, 72);
-        msgData[80] = (byte)agentName.length();
-        for (int i=0; i<agentName.length(); i++)
-            msgData[81+i] = (byte)agentName.codePointAt(i);
-        int offset = agentName.length()+80+1;
-        Utils.uint32ToByteArrayLE(chainHeight, msgData, offset);
-        msgData[offset+4] = 0;
+        msgBuffer.putShort(peerAddress.getPort());
+        //
+        // Set the source address
+        //
+        msgBuffer.putLong(NetParams.SUPPORTED_SERVICES);
+        if (localAddress != null) {
+            byte[] srcAddress = localAddress.getAddress().getAddress();
+            if (srcAddress.length == 16) {
+                msgBuffer.putBytes(srcAddress);
+            } else {
+                msgBuffer.putBytes(PeerAddress.IPV6_PREFIX)
+                         .putBytes(srcAddress);
+            }
+            msgBuffer.putShort(localAddress.getPort());
+        } else {
+            msgBuffer.skip(16+2);
+        }
+        //
+        // Set the agent name
+        //
+        try {
+        String agentName = String.format("/%s/%s/", NetParams.APPLICATION_NAME, NetParams.LIBRARY_NAME);
+            byte[] agentBytes = agentName.getBytes("UTF-8");
+            msgBuffer.putByte((byte)agentBytes.length)
+                     .putBytes(agentBytes);
+        } catch (UnsupportedEncodingException exc) {
+            throw new RuntimeException("Unable to convert string to UTF-8: "+exc.getMessage());
+        }
+        //
+        // Set the chain height and transaction relay flag
+        //
+        msgBuffer.putInt(chainHeight);
+        msgBuffer.putByte((NetParams.SUPPORTED_SERVICES&NetParams.NODE_NETWORK)!=0 ? (byte)1 : (byte)0);
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("version", msgData);
+        ByteBuffer buffer = MessageHeader.buildMessage("version", msgBuffer);
         return new Message(buffer, peer, MessageHeader.VERSION_CMD);
     }
 
@@ -102,24 +129,19 @@ public class VersionMessage {
      * Processes a 'version' message
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            End-of-data processing message data
-     * @throws      IOException             Unable to read message data
      * @throws      VerificationException   Message verification failed
      */
-    public static void processVersionMessage(Message msg, ByteArrayInputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
+    public static void processVersionMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
+
         Peer peer = msg.getPeer();
-        byte[] bytes = new byte[80];
-        int count = inStream.read(bytes);
-        if (count < 80)
-            throw new EOFException("'version' message is too short");
         //
         // Validate the protocol level
         //
-        int version = (int)Utils.readUint32LE(bytes, 0);
+        int version = inBuffer.getInt();
         if (version < NetParams.MIN_PROTOCOL_VERSION)
             throw new VerificationException(String.format("Protocol version %d is not supported", version),
                                             NetParams.REJECT_OBSOLETE);
@@ -127,30 +149,54 @@ public class VersionMessage {
         //
         // Get the peer services
         //
-        peer.setServices(Utils.readUint64LE(bytes, 4));
+        peer.setServices(inBuffer.getLong());
         if ((peer.getServices()&NetParams.NODE_NETWORK) == 0)
             throw new VerificationException("Peer does not provide network services",
                                             NetParams.REJECT_NONSTANDARD);
         //
+        // Get our address as seen by the peer
+        //
+        inBuffer.skip(8+8);
+        byte[] addrBytes = inBuffer.getBytes(16);
+        InetAddress addr;
+        try {
+            boolean ipv4 = true;
+            for (int j=0; j<12; j++) {
+                if (addrBytes[j] != PeerAddress.IPV6_PREFIX[j]) {
+                    ipv4 = false;
+                    break;
+                }
+            }
+            if (ipv4)
+                addr = InetAddress.getByAddress(Arrays.copyOfRange(addrBytes, 12, 16));
+            else
+                addr = InetAddress.getByAddress(addrBytes);
+        } catch (UnknownHostException exc) {
+            throw new VerificationException("Destination address is not valid: "+exc.getMessage());
+        }
+        PeerAddress localAddress = new PeerAddress(addr, inBuffer.getShort());
+        //
         // Get the user agent
         //
-        int length = new VarInt(inStream).toInt();
-        if (length < 0 || length > 256)
-            throw new VerificationException("Agent length is greater than 256 characters");
-        byte[] agentBytes = new byte[length];
-        count = inStream.read(agentBytes);
-        if (count < length)
-            throw new EOFException("'version' message is too short");
-        StringBuilder agentString = new StringBuilder(length);
-        for (int i=0; i<length; i++)
-            agentString.appendCodePoint(((int)agentBytes[i])&0xff);
-        peer.setUserAgent(agentString.toString());
+        inBuffer.skip(26+8);
+        try {
+            int length = inBuffer.getByte();
+            if (length < 0 || length > 255)
+                throw new VerificationException("Agent length is greater than 255 characters");
+            byte[] agentBytes = inBuffer.getBytes(length);
+            peer.setUserAgent(new String(agentBytes, "UTF-8"));
+        } catch (UnsupportedEncodingException exc) {
+            throw new VerificationException("Agent name is not valid: "+exc.getMessage());
+        }
         //
-        // Get the chain height
+        // Get the chain height and transaction relay flag (the transaction relay flag is
+        // not included in earlier protocol versions)
         //
-        count = inStream.read(bytes, 0, 5);
-        if (count < 4)
-            throw new EOFException("'version' message is too short");
-        peer.setHeight((int)Utils.readUint32LE(bytes, 0));
+        peer.setHeight(inBuffer.getInt());
+        peer.setTxRelay(inBuffer.available()>0 && inBuffer.getByte()!=0);
+        //
+        // Notify the message listener
+        //
+        msgListener.processVersion(peer, localAddress);
     }
 }

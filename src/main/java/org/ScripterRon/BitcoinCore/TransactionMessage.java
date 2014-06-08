@@ -15,9 +15,8 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * <p>The 'tx' message contains a transaction which is not yet in a block.  The transaction
@@ -39,34 +38,42 @@ import java.io.IOException;
 public class TransactionMessage {
 
     /**
+     * Build a 'tx' message
+     *
+     * @param       peer                The destination peer or null for a broadcast message
+     * @param       tx                  Transaction to be sent
+     * @return                          Message to be sent to the peer
+     */
+    public static Message buildTransactionMessage(Peer peer, Transaction tx) {
+        //
+        // Build the message
+        //
+        ByteBuffer buffer = MessageHeader.buildMessage("tx", tx.getBytes());
+        return new Message(buffer, peer, MessageHeader.TX_CMD);
+    }
+
+    /**
      * Processes a 'tx' message
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            Serialized data is too short
-     * @throws      IOException             Error reading input stream
      * @throws      VerificationException   Transaction verification failed
      */
-    public static void processTransactionMessage(Message msg, ByteArrayInputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
+    public static void processTransactionMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
         // Get the transaction
         //
-        int length = inStream.available();
-        byte[] msgData = new byte[length];
-        inStream.read(msgData);
-        SerializedInputStream txStream = new SerializedInputStream(msgData, 0, length);
-        Transaction tx = new Transaction(txStream);
-        Sha256Hash txHash = tx.getHash();
+        Transaction tx = new Transaction(inBuffer);
         //
-        // Request completed
+        // Notify the message listener that a request has completed
         //
-        invHandler.requestCompleted(msg.getPeer(), NetParams.INV_TX, txHash);
+        msgListener.requestCompleted(msg.getPeer(), NetParams.INV_TX, tx.getHash());
         //
-        // Process the transaction
+        // Notify the message listener that a transaction is ready for processing
         //
-        invHandler.processTransaction(tx);
+        msgListener.processTransaction(msg.getPeer(), tx);
     }
 }

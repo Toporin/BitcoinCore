@@ -23,29 +23,27 @@ import java.util.List;
 public interface MessageListener {
 
     /**
-     * Handle an inventory item request
+     * Handle an inventory request
      *
      * This method is called when a 'getdata' message is received.  The application
-     * should send the inventory item to the requesting peer.
+     * should send the inventory items to the requesting peer.  A 'notfound' message
+     * should be returned to the requesting peer if one or more items cannot be sent.
      *
      * @param       peer            Peer requesting the inventory item
-     * @param       type            Type of inventory item (INV_BLOCK or INV_TX)
-     * @param       hash            Item hash
-     * @return                      TRUE if the item was sent, FALSE if it was not sent
+     * @param       invList         Inventory item list
      */
-    public boolean sendInventory(Peer peer, int type, Sha256Hash hash);
+    public void sendInventory(Peer peer, List<InventoryItem> invList);
 
     /**
      * Handle an inventory item available notification
      *
      * This method is called when an 'inv' message is received.  The application
-     * should request the inventory item from the peer if the item is needed.
+     * should request any needed inventory items from the peer.
      *
      * @param       peer            Peer announcing inventory item
-     * @param       type            Type of inventory item (INV_BLOCK or INV_TX)
-     * @param       hash            Item hash
+     * @param       invList         Inventory item list
      */
-    public void requestInventory(Peer peer, int type, Sha256Hash hash);
+    public void requestInventory(Peer peer, List<InventoryItem> invList);
 
     /**
      * Handle a request completion
@@ -54,10 +52,10 @@ public interface MessageListener {
      * It notifies the application that an inventory request has been completed.
      *
      * @param       peer            Peer sending the response
-     * @param       type            Type of inventory item (INV_BLOCK, INV_FILTERED_BLOCK or INV_TX)
-     * @param       hash            Item hash
+     * @param       invType         Inventory type (INV_BLOCK, INV_FILTERED_BLOCK, INV_TX)
+     * @param       invItem         Inventory item
      */
-    public void requestCompleted(Peer peer, int type, Sha256Hash hash);
+    public void requestCompleted(Peer peer, int invType, Sha256Hash invItem);
 
     /**
      * Handle a request not found
@@ -68,10 +66,9 @@ public interface MessageListener {
      * peer.
      *
      * @param       peer            Peer sending the response
-     * @param       type            Type of inventory item (INV_BLOCK or INV_TX)
-     * @param       hash            Item hash
+     * @param       invList         Inventory item list
      */
-    public void requestNotFound(Peer peer, int type, Sha256Hash hash);
+    public void requestNotFound(Peer peer, List<InventoryItem> invList);
 
     /**
      * Process a peer address list
@@ -79,36 +76,40 @@ public interface MessageListener {
      * This method is called when an 'addr' message is received.  The address list
      * contains peers that have been active recently.
      *
+     * @param       peer            Peer sending the address list
      * @param       addresses       Peer address list
      */
-    public void processAddresses(List<PeerAddress> addresses);
+    public void processAddresses(Peer peer, List<PeerAddress> addresses);
 
     /**
      * Process an alert
      *
      * This method is called when an 'alert' message is received
      *
+     * @param       peer            Peer sending the alert message
      * @param       alert           Alert
      */
-    public void processAlert(Alert alert);
+    public void processAlert(Peer peer, Alert alert);
 
     /**
      * Process a block
      *
      * This method is called when a 'block' message is received
      *
+     * @param       peer            Peer sending the block
      * @param       block           Block
      */
-    public void processBlock(Block block);
+    public void processBlock(Peer peer, Block block);
 
     /**
      * Process a block header
      *
-     * This method is called when a 'headers' or 'merkleblock' message is received
+     * This method is called when a 'headers' message is received
      *
-     * @param       blockHeader     Block header
+     * @param       peer            Peer sending the headers
+     * @param       hdrList         Block header list
      */
-    public void processBlockHeader(BlockHeader blockHeader);
+    public void processBlockHeaders(Peer peer, List<BlockHeader> hdrList);
 
     /**
      * Process a Bloom filter load request
@@ -137,13 +138,38 @@ public interface MessageListener {
     public void processGetBlocks(Peer peer, int version, List<Sha256Hash> blockList, Sha256Hash stopBlock);
 
     /**
+     * Process a request for the latest headers
+     *
+     * This method is called when a 'getheaders' message is received.  The application should
+     * use the locator block list to find the latest common block and then send a 'headers'
+     * message to the peer for the blocks following the common block.
+     *
+     * @param       peer            Peer sending the message
+     * @param       version         Negotiated version
+     * @param       blockList       Locator block list
+     * @param       stopBlock       Stop block (Sha256Hash.ZERO_HASH if all blocks should be sent)
+     */
+    public void processGetHeaders(Peer peer, int version, List<Sha256Hash> blockList, Sha256Hash stopBlock);
+
+    /**
+     * Process a Merkle block
+     *
+     * This method is called when a 'merkleblock' message is received
+     *
+     * @param       peer            Peer sending the Merkle block
+     * @param       blkHeader       Merkle block header
+     */
+    public void processMerkleBlock(Peer peer, BlockHeader blkHeader);
+
+    /**
      * Process a transaction
      *
      * This method is called when a 'tx' message is received
      *
+     * @param       peer            Peer sending the transaction
      * @param       tx              Transaction
      */
-    public void processTransaction(Transaction tx);
+    public void processTransaction(Peer peer, Transaction tx);
 
     /**
      * Process a message rejection
@@ -157,4 +183,14 @@ public interface MessageListener {
      * @param       hash            Item hash
      */
     public void processReject(Peer peer, String cmd, int reasonCode, String description, Sha256Hash hash);
+
+    /**
+     * Process a version message
+     *
+     * This method is called when a 'version' message is received
+     *
+     * @param       peer            Peer sending the message
+     * @param       localAddress    Local address as seen by the peer
+     */
+    public void processVersion(Peer peer, PeerAddress localAddress);
 }

@@ -19,6 +19,7 @@ package org.ScripterRon.BitcoinCore;
 import java.io.EOFException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -79,7 +80,7 @@ public class Block implements ByteSerializable {
     private long targetDifficulty;
 
     /** The nonce */
-    private long nonce;
+    private int nonce;
 
     /** The transactions contained in the block */
     private List<Transaction> transactions;
@@ -171,13 +172,33 @@ public class Block implements ByteSerializable {
     }
 
     /**
-     * Returns the serialized block data
+     * Return the serialized block data
      *
-     * @return      Byte array containing the serialized data
+     * @return                          Byte array containing the serialized block
      */
     @Override
     public byte[] getBytes() {
         return blockData;
+    }
+
+    /**
+     * Write the serialized block header to the output buffer
+     *
+     * @param       outBuffer           Output buffer
+     * @return                          Output buffer
+     */
+    public SerializedBuffer getHeaderBytes(SerializedBuffer outBuffer) {
+        outBuffer.putBytes(blockData, 0, BlockHeader.HEADER_SIZE);
+        return outBuffer;
+    }
+
+    /**
+     * Return the serialized block header
+     *
+     * @return                          Byte array containing just the block header
+     */
+    public byte[] getHeaderBytes() {
+        return Arrays.copyOfRange(blockData, 0, BlockHeader.HEADER_SIZE);
     }
 
     /**
@@ -387,8 +408,8 @@ public class Block implements ByteSerializable {
             throw new VerificationException(String.format("Block version %d is not supported", blockVersion));
         prevBlockHash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
         merkleRoot = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
-        timeStamp = inBuffer.getInt();
-        targetDifficulty = inBuffer.getInt();
+        timeStamp = inBuffer.getUnsignedInt();
+        targetDifficulty = inBuffer.getUnsignedInt();
         nonce = inBuffer.getInt();
     }
 

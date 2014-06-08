@@ -15,9 +15,10 @@
  */
 package org.ScripterRon.BitcoinCore;
 
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * <p>A 'notfound' message is returned when one or more items in a 'getdata' request
@@ -27,50 +28,56 @@ import java.io.IOException;
  * <pre>
  *   Size       Field               Description
  *   ====       =====               ===========
- *   VarInt     Count               Number of inventory vectors
- *   Variable   InvVector           One or more inventory vectors
- * </pre>
- *
- * <p>Inventory Vector:</p>
- * <pre>
- *   Size       Field               Description
- *   ====       =====               ===========
- *   4 bytes    Type                0=Error, 1=Transaction, 2=Block
- *  32 bytes    Hash                Object hash
+ *   VarInt     Count               Number of inventory items
+ *   Variable   InvItems            One or more inventory items
  * </pre>
  */
 public class NotFoundMessage {
 
     /**
+     * Build a 'notfound' message
+     *
+     * @param       peer                    Destination peer
+     * @param       itemList                Inventory item list
+     * @return                              Message to send to the peer
+     */
+    public static Message buildNotFoundMessage(Peer peer, List<InventoryItem> itemList) {
+        //
+        // Build the message data
+        //
+        SerializedBuffer msgBuffer = new SerializedBuffer(4+itemList.size()*36);
+        msgBuffer.putVarInt(itemList.size());
+        itemList.stream().forEach((item) -> item.getBytes(msgBuffer));
+        //
+        // Build the message
+        //
+        ByteBuffer buffer = MessageHeader.buildMessage("notfound", msgBuffer);
+        return new Message(buffer, peer, MessageHeader.NOTFOUND_CMD);
+    }
+
+    /**
      * Process a 'notfound' message
      *
      * @param       msg                     Message
-     * @param       inStream                Message data stream
-     * @param       invHandler              Inventory handler
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
      * @throws      EOFException            End-of-data processing input stream
-     * @throws      IOException             Unable to read input stream
      * @throws      VerificationException   Verification error
      */
-    public static void processNotFoundMessage(Message msg, ByteArrayInputStream inStream,
-                                            InventoryHandler invHandler)
-                                            throws EOFException, IOException, VerificationException {
-        byte[] bytes = new byte[36];
+    public static void processNotFoundMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+                                            throws EOFException, VerificationException {
         //
-        // Get the number of inventory vectors
+        // Build the inventory item list
         //
-        int invCount = new VarInt(inStream).toInt();
-        if (invCount < 0 || invCount > 50000)
-            throw new VerificationException("More than 50,000 entries in 'notfound' message");
+        int count = inBuffer.getInt();
+        if (count < 0 || count > 1000)
+            throw new VerificationException("More than 1000 entries in 'notfound' message");
+        List<InventoryItem> itemList = new ArrayList<>(count);
+        for (int i=0; i<count; i++)
+            itemList.add(new InventoryItem(inBuffer));
         //
-        // Process the inventory vectors
+        // Notify the message listener
         //
-        for (int i=0; i<invCount; i++) {
-            int count = inStream.read(bytes);
-            if (count < 36)
-                throw new EOFException("'inv' message is too short");
-            int type = (int)Utils.readUint32LE(bytes, 0);
-            Sha256Hash hash = new Sha256Hash(Utils.reverseBytes(bytes, 4, 32));
-            invHandler.requestNotFound(msg.getPeer(), type, hash);
-        }
+        msgListener.requestNotFound(msg.getPeer(), itemList);
     }
 }
