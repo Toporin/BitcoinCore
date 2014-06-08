@@ -41,8 +41,8 @@ public class GetBlocksMessage {
      *
      * @param       peer            Destination peer
      * @param       blockList       Block hash list
-     * @param       stopBlock       Stop block hash (Sha256Hash.ZERO to get all blocks)
-     * @return                      Message to send to the peer
+     * @param       stopBlock       Stop block hash (Sha256Hash.ZERO_HASH to get all blocks)
+     * @return                      'getblocks' message
      */
     public static Message buildGetBlocksMessage(Peer peer, List<Sha256Hash> blockList, Sha256Hash stopBlock) {
         //
@@ -80,6 +80,8 @@ public class GetBlocksMessage {
         if (version < NetParams.MIN_PROTOCOL_VERSION)
             throw new VerificationException(String.format("Protocol version %d is not supported", version));
         int count = inBuffer.getVarInt();
+        if (count < 0 || count > 500)
+            throw new VerificationException("More than 500 locator entries in 'getblocks' message");
         List<Sha256Hash> blockList = new ArrayList<>(count);
         for (int i=0; i<count; i++)
             blockList.add(new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32))));

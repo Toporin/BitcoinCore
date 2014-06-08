@@ -59,7 +59,7 @@ public class Block implements ByteSerializable {
     private byte[] blockData;
 
     /** The block version */
-    private long blockVersion;
+    private int blockVersion;
 
     /** The block hash calculated from the block header */
     private Sha256Hash blockHash;
@@ -132,10 +132,10 @@ public class Block implements ByteSerializable {
         //
         if (inBuffer.available() < BlockHeader.HEADER_SIZE)
             throw new EOFException("Block header truncated");
-        int startPosition = inBuffer.getPosition();
         //
         // Compute the block hash from the serialized block header
         //
+        int startPosition = inBuffer.getPosition();
         blockHash = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(inBuffer.getBytes(BlockHeader.HEADER_SIZE))));
         inBuffer.setPosition(startPosition);
         //
@@ -212,7 +212,7 @@ public class Block implements ByteSerializable {
      *
      * @return      Block version
      */
-    public long getVersion() {
+    public int getVersion() {
         return blockVersion;
     }
 
@@ -283,7 +283,7 @@ public class Block implements ByteSerializable {
 
     /**
      * Returns the target difficulty as a 256-bit value that can be compared to a SHA-256 hash.
-     * Inside a block. the target is represented using a compact form.
+     * Inside a block. the target is represented using the compact form.
      *
      * @return      The difficulty target
      */
@@ -292,10 +292,10 @@ public class Block implements ByteSerializable {
     }
 
     /**
-     * <p>Returns the work represented by this block.</p>
+     * Returns the work represented by this block
      *
-     * <p>Work is defined as the number of tries needed to solve a block in the
-     * average case.  As the target gets lower, the amount of work goes up.</p>
+     * Work is defined as the number of tries needed to solve a block in the
+     * average case.  As the target gets lower, the amount of work goes up.
      *
      * @return      The work represented by this block
      */
@@ -362,9 +362,7 @@ public class Block implements ByteSerializable {
         //  t1 t2 t3 t4 t5 t5
         //
         ArrayList<byte[]> tree = new ArrayList<>();
-        transactions.stream().forEach((tx) -> {
-            tree.add(tx.getHash().getBytes());
-        });
+        transactions.stream().forEach((tx) -> tree.add(tx.getHash().getBytes()));
         //
         // The tree is generated starting at the leaves and moving down to the root
         //

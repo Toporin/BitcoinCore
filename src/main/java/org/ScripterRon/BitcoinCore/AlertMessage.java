@@ -56,8 +56,8 @@ public class AlertMessage {
      * Create an 'alert' message
      *
      * @param       peer                    Destination peer or null for a broadcast message
-     * @param       alert                   The alert
-     * @return                              The 'alert' message
+     * @param       alert                   Alert
+     * @return                              'alert' message
      */
     public static Message buildAlertMessage(Peer peer, Alert alert) {
         //
@@ -73,7 +73,6 @@ public class AlertMessage {
         //
         ByteBuffer buffer = MessageHeader.buildMessage("alert", msgData);
         Message msg = new Message(buffer, peer, MessageHeader.ALERT_CMD);
-        msg.setAlert(alert);
         return msg;
     }
 
@@ -82,9 +81,9 @@ public class AlertMessage {
      *
      * @param       msg                     Message
      * @param       inBuffer                Message buffer
-     * @param       msgListener             Message listener or null
-     * @throws      EOFException            Serialized byte stream is too short
-     * @throws      VerificationException   Message contains more than 1000 entries
+     * @param       msgListener             Message listener
+     * @throws      EOFException            End-of-data while processing stream
+     * @throws      VerificationException   Message verification failed
      */
     public static void processAlertMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
                                            throws EOFException, VerificationException {
@@ -96,15 +95,13 @@ public class AlertMessage {
         //
         // Verify the signature
         //
-        boolean isValid = false;
         ECKey ecKey = new ECKey(alertPubKey);
         try {
-            isValid = ecKey.verifySignature(payload, signature);
+            if (!ecKey.verifySignature(payload, signature))
+                throw new VerificationException("Alert signature is not valid");
         } catch (ECException exc) {
             throw new VerificationException("Alert signature verification failed", exc);
         }
-        if (!isValid)
-            throw new VerificationException("Alert signature is not valid");
         //
         // Notify the application message listener
         //

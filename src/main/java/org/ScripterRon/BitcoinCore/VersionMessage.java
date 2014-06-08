@@ -85,7 +85,7 @@ public class VersionMessage {
             msgBuffer.putBytes(PeerAddress.IPV6_PREFIX);
             msgBuffer.putBytes(dstAddress);
         }
-        msgBuffer.putShort(peerAddress.getPort());
+        msgBuffer.putUnsignedShort(peerAddress.getPort());
         //
         // Set the source address
         //
@@ -98,7 +98,7 @@ public class VersionMessage {
                 msgBuffer.putBytes(PeerAddress.IPV6_PREFIX)
                          .putBytes(srcAddress);
             }
-            msgBuffer.putShort(localAddress.getPort());
+            msgBuffer.putUnsignedShort(localAddress.getPort());
         } else {
             msgBuffer.skip(16+2);
         }
@@ -174,7 +174,7 @@ public class VersionMessage {
         } catch (UnknownHostException exc) {
             throw new VerificationException("Destination address is not valid: "+exc.getMessage());
         }
-        PeerAddress localAddress = new PeerAddress(addr, inBuffer.getShort());
+        PeerAddress localAddress = new PeerAddress(addr, inBuffer.getUnsignedShort());
         //
         // Get the user agent
         //

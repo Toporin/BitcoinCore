@@ -24,16 +24,30 @@ import java.nio.ByteBuffer;
 public class VersionAckMessage {
 
     /**
-     * Build the 'verack' response message
+     * Build the 'verack' message
      *
-     * @param       msg                Received message
+     * @param       peer                The destination peer
+     * @return                          'verack' message
      */
-    public static void buildVersionResponse(Message msg) {
+    public static Message buildVersionAckMessage(Peer peer) {
         //
-        // Build the message and set the response buffer
+        // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("verack", new byte[0]);
-        msg.setBuffer(buffer);
-        msg.setCommand(MessageHeader.VERACK_CMD);
+        return new Message(buffer, peer, MessageHeader.VERACK_CMD);
+    }
+
+    /**
+     * Process the 'verack' message
+     *
+     * @param       msg                 Message
+     * @param       inBuffer            Input buffer
+     * @param       msgListener         Message listener
+     */
+    public static void processVersionAckMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener) {
+        //
+        // Notify the message listener
+        //
+        msgListener.processVersionAck(msg.getPeer());
     }
 }

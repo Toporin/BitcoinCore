@@ -43,15 +43,15 @@ public class InventoryMessage {
      *
      * @param       peer            Destination peer
      * @param       itemList        Inventory item list
-     * @return                      Message to send to the peer
+     * @return                      'inv' message
      */
     public static Message buildInventoryMessage(Peer peer, List<InventoryItem> itemList) {
         //
         // Build the message data
         //
         SerializedBuffer msgBuffer = new SerializedBuffer(itemList.size()*36+4);
-        msgBuffer.putVarInt(itemList.size());
-        itemList.stream().forEach((item) -> item.getBytes(msgBuffer));
+        msgBuffer.putVarInt(itemList.size())
+                 .putBytes(itemList);
         //
         // Build the message
         //

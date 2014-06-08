@@ -19,53 +19,51 @@ import java.io.EOFException;
 import java.nio.ByteBuffer;
 
 /**
- * <p>A 'ping' message is sent to test network connectivity to a node.  Upon receiving a ping,
- * the node responds with a pong.</p>
- *
- * <p>Ping Message</p>
+ * <p>Pong Message</p>
  * <pre>
  *   Size       Field               Description
  *   ====       =====               ===========
- *   8 bytes    Nonce               Random value
- * </pre>
+ *   8 bytes    Nonce               Random value from ping message
+ * </pre> *
  */
-public class PingMessage {
+public class PongMessage {
 
     /**
-     * Send a 'ping' message to a peer
+     * Send a 'pong' message to a peer
      *
      * @param       peer                Destination peer
-     * @return                          'ping' message
+     * @param       nonce               Nonce from the 'ping' message
+     * @return                          'pong' message
      */
-    public static Message buildPingMessage(Peer peer) {
+    public static Message buildPongMessage(Peer peer, long nonce) {
         //
-        // We will use the current time as the nonce
+        // Build the message data
         //
-        SerializedBuffer msgBuffer = new SerializedBuffer(8).putLong(System.currentTimeMillis());
+        SerializedBuffer msgBuffer = new SerializedBuffer(8).putLong(nonce);
         //
         // Build the message
         //
-        ByteBuffer buffer = MessageHeader.buildMessage("ping", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.PING_CMD);
+        ByteBuffer buffer = MessageHeader.buildMessage("pong", msgBuffer);
+        return new Message(buffer, peer, MessageHeader.PONG_CMD);
     }
 
     /**
-     * Process a 'ping' message
+     * Process a 'pong'
      *
      * @param       msg                 Message
      * @param       inBuffer            Input buffer
      * @param       msgListener         Message listener
      * @throws      EOFException        End-of-data while processing input stream
      */
-    public static void processPingMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
+    public static void processPongMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
                                         throws EOFException {
         //
-        // Get the nonce from the 'ping' message
+        // Get the nonce from the 'pong' message
         //
         long nonce = inBuffer.getLong();
         //
         // Notify the message listener
         //
-        msgListener.processPing(msg.getPeer(), nonce);
+        msgListener.processPong(msg.getPeer(), nonce);
     }
 }

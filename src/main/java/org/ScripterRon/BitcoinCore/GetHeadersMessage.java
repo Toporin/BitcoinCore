@@ -43,7 +43,7 @@ public class GetHeadersMessage {
      * @param       peer            Destination peer
      * @param       blockList       Block hash list
      * @param       stopBlock       Stop block (Sha256Hash.ZERO_HASH to return all blocks)
-     * @return                      Message to send to the peer
+     * @return                      'getheaders' message
      */
     public static Message buildGetHeadersMessage(Peer peer, List<Sha256Hash> blockList, Sha256Hash stopBlock) {
         //

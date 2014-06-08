@@ -42,7 +42,7 @@ public class TransactionMessage {
      *
      * @param       peer                The destination peer or null for a broadcast message
      * @param       tx                  Transaction to be sent
-     * @return                          Message to be sent to the peer
+     * @return                          'tx' message
      */
     public static Message buildTransactionMessage(Peer peer, Transaction tx) {
         //
@@ -67,10 +67,6 @@ public class TransactionMessage {
         // Get the transaction
         //
         Transaction tx = new Transaction(inBuffer);
-        //
-        // Notify the message listener that a request has completed
-        //
-        msgListener.requestCompleted(msg.getPeer(), NetParams.INV_TX, tx.getHash());
         //
         // Notify the message listener that a transaction is ready for processing
         //

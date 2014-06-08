@@ -42,7 +42,7 @@ public class FilterLoadMessage {
      *
      * @param       peer                Destination peer
      * @param       filter              Bloom filter
-     * @return                          Message to send to the peer
+     * @return                          'filterload' message
      */
     public static Message buildFilterLoadMessage(Peer peer, BloomFilter filter) {
         //

@@ -33,7 +33,7 @@ public class SerializedBuffer {
     private static final int defaultSize = 256;
 
     /** Buffer size increment */
-    private static final int incrementSize = 256;
+    private static final int incrementSize = 512;
 
     /** Byte buffer */
     private byte[] bytes;
@@ -86,7 +86,7 @@ public class SerializedBuffer {
     }
 
     /**
-     * Create a new serialized buffer with the default size of 256
+     * Create a new serialized buffer with the default size
      */
     public SerializedBuffer() {
         this(new byte[defaultSize], 0, defaultSize);
@@ -191,7 +191,8 @@ public class SerializedBuffer {
     }
 
     /**
-     * Return a ByteBuffer for the serialized buffer
+     * Return a ByteBuffer for the serialized buffer.  The ByteBuffer will use the
+     * little-endian format.
      *
      * @return                          ByteBuffer
      */
@@ -221,6 +222,16 @@ public class SerializedBuffer {
     }
 
     /**
+     * Return an unsigned byte value
+     *
+     * @return                          Unsigned byte value
+     * @throws      EOFException        Byte array underrun
+     */
+    public int getUnsignedByte() throws EOFException {
+        return (int)getByte()&255;
+    }
+
+    /**
      * Store a byte value
      *
      * @param       val                 Byte value
@@ -234,12 +245,22 @@ public class SerializedBuffer {
     }
 
     /**
+     * Store an unsigned byte value
+     *
+     * @param       val                 Unsigned byte value
+     * @return                          This buffer
+     */
+    public SerializedBuffer putUnsignedByte(int val) {
+        return putByte((byte)val);
+    }
+
+    /**
      * Return a 2-byte unsigned short value
      *
      * @return                          Short value
      * @throws      EOFException        Byte array underrun
      */
-    public int getShort() throws EOFException {
+    public int getUnsignedShort() throws EOFException {
         if (bufferLimit-offset < 2)
             throw new EOFException("Byte array underrun");
         return ((int)bytes[offset++]&255) | (((int)bytes[offset++]&255)<<8);
@@ -251,22 +272,12 @@ public class SerializedBuffer {
      * @param       val                 Short value
      * @return                          This buffer
      */
-    public SerializedBuffer putShort(int val) {
+    public SerializedBuffer putUnsignedShort(int val) {
         if (bufferLimit-offset < 2)
             reallocateArray(2);
         bytes[offset++] = (byte)val;
         bytes[offset++] = (byte)(val>>>8);
         return this;
-    }
-
-    /**
-     * Store a variable-length unsigned short value
-     *
-     * @param       val                 Short value
-     * @return                          This buffer
-     */
-    public SerializedBuffer putVarShort(short val) {
-        return encodeVar((long)val&0x000000000000ffffL);
     }
 
     /**
@@ -531,9 +542,7 @@ public class SerializedBuffer {
      * @return                          This buffer
      */
     public SerializedBuffer putBytes(List<? extends ByteSerializable> byteList) {
-        byteList.stream().forEach((elem) -> {
-            elem.getBytes(this);
-        });
+        byteList.stream().forEach((elem) -> elem.getBytes(this));
         return this;
     }
 
@@ -567,7 +576,7 @@ public class SerializedBuffer {
     }
 
     /**
-     * Decode a variable-length numeric value
+     * Decode a variable-length unsigned numeric value
      *
      * @return                          Decoded value
      * @throws      EOFException        Byte array underrun
@@ -576,16 +585,16 @@ public class SerializedBuffer {
         if (offset == bufferLimit)
             throw new EOFException("Byte array underrun");
         long value;
-        int first = bytes[offset++]&255;
+        int first = (int)bytes[offset++]&255;
         if (first < 253) {
             // 8 bits
             value = first;
         } else if (first == 253) {
             // 16 bits
-            value = getShort();
+            value = getUnsignedShort();
         } else if (first == 254) {
             // 32 bits
-            value = getInt();
+            value = getUnsignedInt();
         } else {
             // 64 bits
             value = getLong();
@@ -594,7 +603,7 @@ public class SerializedBuffer {
     }
 
     /**
-     * Encode a variable-length numeric value
+     * Encode a variable-length unsigned numeric value
      *
      * @param       val                 Value to be encoded
      * @return                          This buffer
@@ -608,11 +617,11 @@ public class SerializedBuffer {
         } else if ((val&0x00000000FFFF0000L) != 0) {
             // 1 marker + 4 data bytes
             bytes[offset++] = (byte)254;
-            putInt((int)val);
+            putUnsignedInt(val);
         } else if (val >= 253L) {
             // 1 marker + 2 data bytes
             bytes[offset++] = (byte)253;
-            putShort((short)val);
+            putUnsignedShort((int)val);
         } else {
             // Single data byte
             bytes[offset++] = (byte)val;

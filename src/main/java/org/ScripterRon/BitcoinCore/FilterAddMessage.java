@@ -38,7 +38,7 @@ public class FilterAddMessage {
      *
      * @param       peer                    The destination peer
      * @param       elem                    The filter element
-     * @return                              Message to send to peer
+     * @return                              'filteradd' message
      */
     public static Message buildFilterAddMessage(Peer peer, byte[] elem) {
         SerializedBuffer outBuffer = new SerializedBuffer();

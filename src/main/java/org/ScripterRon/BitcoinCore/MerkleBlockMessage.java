@@ -50,7 +50,7 @@ public class MerkleBlockMessage {
      * @param       peer            Destination peer
      * @param       block           Block to be sent to the peer
      * @param       indexList       List of matching transaction indexes
-     * @return                      Message to be sent to the peer
+     * @return                      'merkleblock' message
      */
     public static Message buildMerkleBlockMessage(Peer peer, Block block, List<Integer> indexList) {
         //
@@ -95,10 +95,6 @@ public class MerkleBlockMessage {
         if (!merkleRoot.equals(blockHeader.getMerkleRoot()))
             throw new VerificationException("Merkle root is incorrect", NetParams.REJECT_INVALID);
         blockHeader.setMatches(matches);
-        //
-        // Notify the message listener that a request has completed
-        //
-        msgListener.requestCompleted(msg.getPeer(), NetParams.INV_FILTERED_BLOCK, blockHeader.getHash());
         //
         // Notify the message listener that a block is ready for processing
         //

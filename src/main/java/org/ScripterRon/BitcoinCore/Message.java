@@ -29,9 +29,6 @@ public class Message {
     /** The message restart buffer */
     private ByteBuffer restartBuffer;
 
-    /** Alert associated with this message */
-    private Alert alert;
-
     /** The associated peer */
     private Peer peer;
 
@@ -151,31 +148,13 @@ public class Message {
     }
 
     /**
-     * Returns the alert associated with this message
-     *
-     * @return                      Alert
-     */
-    public Alert getAlert() {
-        return alert;
-    }
-
-    /**
-     * Sets the alert associated with this message
-     *
-     * @param       alert           Alert
-     */
-    public void setAlert(Alert alert) {
-        this.alert = alert;
-    }
-
-    /**
      * Creates a copy of this message
+     *
+     * A new ByteBuffer is created using the same byte array.  This allows multiple
+     * output channels to process the message at the same time.
      *
      * @param       peer            Target peer
      * @return                      Message clone
-     *
-     * A new ByteBuffer is created using the same byte array.  This allows multiple
-     * output channels to process the data at the same time.
      */
     public Message clone(Peer peer) {
         ByteBuffer newBuffer = (buffer!=null ? ByteBuffer.wrap(buffer.array()) : null);

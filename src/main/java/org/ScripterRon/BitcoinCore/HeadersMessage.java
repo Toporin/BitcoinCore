@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * <p>The 'headers' message is returned in response to a 'getheaders' message.
  * Note that the returned header includes the block header (80 bytes) plus
- * the transaction count (although the count is set to zero)</p>
+ * the transaction count (the count is set to zero)</p>
  *
  * <p>Headers Message</p>
  * <pre>
@@ -40,7 +40,7 @@ public class HeadersMessage {
      *
      * @param       peer            Destination peer
      * @param       hdrList         List of block headers
-     * @return                      Headers message
+     * @return                      'headers' message
      */
     public static Message buildHeadersMessage(Peer peer, List<BlockHeader> hdrList) {
         SerializedBuffer msgBuffer = new SerializedBuffer(hdrList.size()*(BlockHeader.HEADER_SIZE+1)+4);
@@ -48,7 +48,7 @@ public class HeadersMessage {
         // Build the message data
         //
         msgBuffer.putVarInt(hdrList.size());
-        hdrList.stream().forEach((hdr) -> hdr.getBytes(msgBuffer).putByte((byte)0));
+        hdrList.stream().forEach((hdr) -> hdr.getBytes(msgBuffer).putVarInt(0));
         //
         // Build the message
         //
@@ -76,7 +76,7 @@ public class HeadersMessage {
         List<BlockHeader> hdrList = new ArrayList<>(count);
         for (int i=0; i<count; i++) {
             hdrList.add(new BlockHeader(inBuffer, true));
-            inBuffer.getByte();
+            inBuffer.getVarInt();
         }
         //
         // Notify the message listener

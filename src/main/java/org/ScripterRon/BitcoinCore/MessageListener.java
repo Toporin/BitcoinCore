@@ -46,18 +46,6 @@ public interface MessageListener {
     public void requestInventory(Peer peer, List<InventoryItem> invList);
 
     /**
-     * Handle a request completion
-     *
-     * This method is called when a 'block', 'merkleblock' or 'tx' message is received.
-     * It notifies the application that an inventory request has been completed.
-     *
-     * @param       peer            Peer sending the response
-     * @param       invType         Inventory type (INV_BLOCK, INV_FILTERED_BLOCK, INV_TX)
-     * @param       invItem         Inventory item
-     */
-    public void requestCompleted(Peer peer, int invType, Sha256Hash invItem);
-
-    /**
      * Handle a request not found
      *
      * This method is called when a 'notfound' message is received.  It notifies the
@@ -162,14 +150,25 @@ public interface MessageListener {
     public void processMerkleBlock(Peer peer, BlockHeader blkHeader);
 
     /**
-     * Process a transaction
+     * Process a ping
      *
-     * This method is called when a 'tx' message is received
+     * This method is called when a 'ping' message is received.  The application should
+     * return a 'pong' message to the sender.
      *
-     * @param       peer            Peer sending the transaction
-     * @param       tx              Transaction
+     * @param       peer            Peer sending the ping
+     * @param       nonce           Nonce
      */
-    public void processTransaction(Peer peer, Transaction tx);
+    public void processPing(Peer peer, long nonce);
+
+    /**
+     * Process a pong
+     *
+     * This method is called when a 'pong' message is received.
+     *
+     * @param       peer            Peer sending the pong
+     * @param       nonce           Nonce
+     */
+    public void processPong(Peer peer, long nonce);
 
     /**
      * Process a message rejection
@@ -180,17 +179,37 @@ public interface MessageListener {
      * @param       cmd             Failing message command
      * @param       reasonCode      Failure reason code
      * @param       description     Description of the failure
-     * @param       hash            Item hash
+     * @param       hash            Item hash or Sha256Hash.ZERO_HASH
      */
     public void processReject(Peer peer, String cmd, int reasonCode, String description, Sha256Hash hash);
 
     /**
+     * Process a transaction
+     *
+     * This method is called when a 'tx' message is received
+     *
+     * @param       peer            Peer sending the transaction
+     * @param       tx              Transaction
+     */
+    public void processTransaction(Peer peer, Transaction tx);
+
+    /**
      * Process a version message
      *
-     * This method is called when a 'version' message is received
+     * This method is called when a 'version' message is received.  The application
+     * should return a 'verack' message to the sender if the connection is accepted.
      *
      * @param       peer            Peer sending the message
      * @param       localAddress    Local address as seen by the peer
      */
     public void processVersion(Peer peer, PeerAddress localAddress);
+
+    /**
+     * Process a version acknowledgment
+     *
+     * This method is called when a 'verack' message is received
+     *
+     * @param       peer            Peer sending the message
+     */
+    public void processVersionAck(Peer peer);
 }

@@ -39,15 +39,15 @@ public class NotFoundMessage {
      *
      * @param       peer                    Destination peer
      * @param       itemList                Inventory item list
-     * @return                              Message to send to the peer
+     * @return                              'notfound' message
      */
     public static Message buildNotFoundMessage(Peer peer, List<InventoryItem> itemList) {
         //
         // Build the message data
         //
         SerializedBuffer msgBuffer = new SerializedBuffer(4+itemList.size()*36);
-        msgBuffer.putVarInt(itemList.size());
-        itemList.stream().forEach((item) -> item.getBytes(msgBuffer));
+        msgBuffer.putVarInt(itemList.size())
+                 .putBytes(itemList);
         //
         // Build the message
         //

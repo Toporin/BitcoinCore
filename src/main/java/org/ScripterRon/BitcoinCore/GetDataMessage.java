@@ -40,7 +40,7 @@ public class GetDataMessage {
      *
      * @param       peer            Destination peer
      * @param       invList         Inventory item list
-     * @return                      Message to be sent to the peer
+     * @return                      'getdata' message
      */
     public static Message buildGetDataMessage(Peer peer, List<InventoryItem> invList) {
         SerializedBuffer msgBuffer = new SerializedBuffer(invList.size()*36+4);
@@ -68,8 +68,8 @@ public class GetDataMessage {
         // Build the request list
         //
         int count = inBuffer.getVarInt();
-        if (count < 0 || count > 50000)
-            throw new VerificationException("More than 50,000 inventory entries in 'getdata' message");
+        if (count < 0 || count > 1000)
+            throw new VerificationException("More than 1000 inventory items in 'getdata' message");
         List<InventoryItem> itemList = new ArrayList<>(count);
         for (int i=0; i<count; i++)
             itemList.add(new InventoryItem(inBuffer));

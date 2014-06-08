@@ -134,7 +134,7 @@ public class PeerAddress implements ByteSerializable {
         timeSeen = inBuffer.getInt();
         services = inBuffer.getLong();
         byte[] addrBytes = inBuffer.getBytes(16);
-        port = inBuffer.getShort();
+        port = inBuffer.getUnsignedShort();
         //
         // Generate the IPv4 or IPv6 address
         //
@@ -171,7 +171,7 @@ public class PeerAddress implements ByteSerializable {
         else
             buffer.putBytes(IPV6_PREFIX)
                   .putBytes(addrBytes);
-        buffer.putShort(port);
+        buffer.putUnsignedShort(port);
         return buffer;
     }
 

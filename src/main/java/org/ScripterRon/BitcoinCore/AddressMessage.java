@@ -53,7 +53,7 @@ public class AddressMessage {
      * @param       peer                The destination peer or null for a broadcast message
      * @param       addressList         Peer address list
      * @param       localAddress        Local address or null if not accepting inbound connections
-     * @return                          Message to be sent to the peer
+     * @return                          'addr' message
      */
     public static Message buildAddressMessage(Peer peer, List<PeerAddress> addressList, PeerAddress localAddress) {
         //
@@ -61,11 +61,13 @@ public class AddressMessage {
         // The maximum length of the list is 250 entries.  Static addresses are not included
         // in the list.  We will include our own address with a current timestamp if it is available.
         //
-        long oldestTime = System.currentTimeMillis()/1000 - (15*60);
+        long currentTime = System.currentTimeMillis()/1000;
+        long oldestTime = currentTime - (15*60);
         List<PeerAddress> addresses = new ArrayList<>(250);
         if (localAddress != null) {
-            localAddress.setTimeStamp(oldestTime);
-            addresses.add(localAddress);
+            PeerAddress addr = new PeerAddress(localAddress.getAddress(), localAddress.getPort(), currentTime);
+            addr.setServices(NetParams.SUPPORTED_SERVICES);
+            addresses.add(addr);
         }
         for (PeerAddress address : addressList) {
             if (addresses.size() >= 250)
@@ -96,8 +98,8 @@ public class AddressMessage {
      *
      * @param       msg                     Message
      * @param       inBuffer                Message buffer
-     * @param       msgListener             Message listener or null
-     * @throws      EOFException            Serialized byte stream is too short
+     * @param       msgListener             Message listener
+     * @throws      EOFException            End-of-data while processing stream
      * @throws      VerificationException   Message contains more than 1000 entries
      */
     public static void processAddressMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
@@ -117,12 +119,12 @@ public class AddressMessage {
         for (int i=0; i<addrCount; i++) {
             PeerAddress address = new PeerAddress(inBuffer);
             if (address.getTimeStamp() > oldestTime)
-                addresses.add(new PeerAddress(inBuffer));
+                addresses.add(address);
         }
         //
         // Notify the application message listener
         //
-        if (!addresses.isEmpty() && msgListener != null)
+        if (!addresses.isEmpty())
             msgListener.processAddresses(msg.getPeer(), addresses);
     }
 }

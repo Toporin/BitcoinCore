@@ -60,7 +60,7 @@ public class BloomFilter implements ByteSerializable {
     public static final int MAX_HASH_FUNCS = 50;
 
     /** Filter data */
-    private byte[] filter;
+    private final byte[] filter;
 
     /** Number of hash functions */
     private int nHashFuncs;
@@ -223,9 +223,8 @@ public class BloomFilter implements ByteSerializable {
      *
      * @param       tx              Transaction to check
      * @return      TRUE if the transaction matches the filter
-     * @throws      EOFException if an error occurs while processing a script
      */
-    public boolean checkTransaction(Transaction tx) throws EOFException {
+    public boolean checkTransaction(Transaction tx) {
         boolean foundMatch = false;
         Sha256Hash txHash = tx.getHash();
         byte[] outpointData = new byte[36];
@@ -307,18 +306,12 @@ public class BloomFilter implements ByteSerializable {
      *
      * @param       block           Block containing the transactions
      * @return                      List of matching transactions (List size will be 0 if no matches found)
-     * @throws      EOFException    End-of-data while processing stream
      */
-    public List<Sha256Hash> findMatches(Block block) throws EOFException {
+    public List<Sha256Hash> findMatches(Block block) {
         List<Transaction> txList = block.getTransactions();
         List<Sha256Hash> matches = new ArrayList<>(txList.size());
-        //
-        // Check each transaction in the block
-        //
-        for (Transaction tx : txList) {
-            if (checkTransaction(tx))
-                matches.add(tx.getHash());
-        }
+        txList.stream().filter((tx) -> checkTransaction(tx))
+                       .forEach((tx) -> matches.add(tx.getHash()));
         return matches;
     }
 

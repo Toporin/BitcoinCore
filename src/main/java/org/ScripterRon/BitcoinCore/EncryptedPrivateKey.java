@@ -25,7 +25,6 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 import java.io.EOFException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.util.Arrays;
 
 /**
  * EncryptedPrivateKey contains an encrypted private key, the initial vector used

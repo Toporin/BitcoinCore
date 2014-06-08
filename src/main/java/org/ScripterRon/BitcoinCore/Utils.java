@@ -434,18 +434,6 @@ public class Utils {
     }
 
     /**
-     * Form an integer value from an 2-byte array in big-endian format
-     *
-     * @param       bytes           The byte array
-     * @param       offset          Starting offset within the array
-     * @return      The decoded value
-     */
-    public static int readUint16BE(byte[] bytes, int offset) {
-        return (((int)bytes[offset++]&0x00ff) << 8) |
-               ((int)bytes[offset]&0x00ff);
-    }
-
-    /**
      * Form a long value from a 4-byte array in little-endian format
      *
      * @param       bytes           The byte array
@@ -488,35 +476,6 @@ public class Utils {
     }
 
     /**
-     * Write an unsigned 32-bit value to a byte array in big-endian format
-     *
-     * @param       val             Value to be written
-     * @param       out             Output array
-     * @param       offset          Starting offset
-     */
-    public static void uint32ToByteArrayBE(long val, byte[] out, int offset) {
-        out[offset++] = (byte)(val>>24);
-        out[offset++] = (byte)(val>>16);
-        out[offset++] = (byte)(val>>8);
-        out[offset] = (byte)val;
-    }
-
-    /**
-     * Write an unsigned 32-bit value to an output stream in little-endian format
-     *
-     * @param       val             Value to be written
-     * @param       stream          Output stream
-     *
-     * @throws      IOException     I/O error processing stream
-     */
-    public static void uint32ToByteStreamLE(long val, OutputStream stream) throws IOException {
-        stream.write((int)(0x00FF&val));
-        stream.write((int)(0x00FF&(val >> 8)));
-        stream.write((int)(0x00FF&(val >> 16)));
-        stream.write((int)(0x00FF&(val >> 24)));
-    }
-
-    /**
      * Form a long value from an 8-byte array in little-endian format
      *
      * @param       bytes           The byte array
@@ -550,42 +509,5 @@ public class Utils {
         out[offset++] = (byte)(val >> 40);
         out[offset++] = (byte)(val >> 48);
         out[offset] = (byte)(val >> 56);
-    }
-
-    /**
-     * Write a 64-bit value to a byte stream in little-endian format
-     *
-     * @param       val             The value to be written
-     * @param       stream          The output stream
-     * @throws      IOException     I/O error processing stream
-     */
-    public static void uint64ToByteStreamLE(long val, OutputStream stream) throws IOException {
-        stream.write((int)(0x00FF&val));
-        stream.write((int)(0x00FF&(val >> 8)));
-        stream.write((int)(0x00FF&(val >> 16)));
-        stream.write((int)(0x00FF&(val >> 24)));
-        stream.write((int)(0x00FF&(val >> 32)));
-        stream.write((int)(0x00FF&(val >> 40)));
-        stream.write((int)(0x00FF&(val >> 48)));
-        stream.write((int)(0x00FF&(val >> 56)));
-    }
-
-    /**
-     * Write a BigInteger value to a byte stream in little-endian format
-     *
-     * @param       val             BigInteger to be written
-     * @param       stream          Output stream
-     * @throws      IOException     I/O error processing stream
-     */
-    public static void uint64ToByteStreamLE(BigInteger val, OutputStream stream) throws IOException {
-        byte[] bytes = val.toByteArray();
-        if (bytes.length > 8)
-            throw new RuntimeException("Input too large to encode into a uint64");
-        bytes = reverseBytes(bytes);
-        stream.write(bytes);
-        if (bytes.length < 8) {
-            for (int i=0; i<8-bytes.length; i++)
-                stream.write(0);
-        }
     }
 }

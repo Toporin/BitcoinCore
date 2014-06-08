@@ -28,7 +28,7 @@ public class BlockMessage {
      *
      * @param       peer                The destination peer or null for a broadcast message
      * @param       block               Block to be sent to the peer
-     * @return                          Message to be sent to the peer
+     * @return                          'block' message
      */
     public static Message buildBlockMessage(Peer peer, Block block) {
         //
@@ -39,12 +39,12 @@ public class BlockMessage {
     }
 
     /**
-     * Processe a 'block' message
+     * Process a 'block' message
      *
      * @param       msg                     Message
-     * @param       inBuffer                Message data stream
-     * @param       msgListener             Message listener or null
-     * @throws      EOFException            Serialized data is too short
+     * @param       inBuffer                Input buffer
+     * @param       msgListener             Message listener
+     * @throws      EOFException            End-of-data while processing stream
      * @throws      VerificationException   Block verification failed
      */
     public static void processBlockMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
