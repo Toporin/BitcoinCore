@@ -20,6 +20,7 @@ import java.io.EOFException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,6 +29,10 @@ import java.util.List;
  * the little-endian format
  */
 public class SerializedBuffer {
+
+
+    /** UTF-8 character set */
+    private final Charset utf8Charset = Charset.forName("UTF-8");
 
     /** Default buffer size */
     private static final int defaultSize = 256;
@@ -411,6 +416,26 @@ public class SerializedBuffer {
     }
 
     /**
+     * Return a boolean value
+     *
+     * @return                          Boolean value
+     * @throws      EOFException        End-of-data processing stream
+     */
+    public boolean getBoolean() throws EOFException {
+        return (getByte()!=0);
+    }
+
+    /**
+     * Store a boolean value
+     *
+     * @param       val                 Boolean value
+     * @return                          This buffer
+     */
+    public SerializedBuffer putBoolean(boolean val) {
+        return putByte(val ? (byte)1 : (byte)0);
+    }
+
+    /**
      * Return a string value.  The string length is encoded as a variable-length
      * integer followed by the UTF-8 string representation.
      *
@@ -418,17 +443,8 @@ public class SerializedBuffer {
      * @throws      EOFException        End-of-data processing stream
      */
     public String getString() throws EOFException {
-        String string;
-        try {
-            int count = getVarInt();
-            if (count == 0)
-                string = "";
-            else
-                string = new String(getBytes(count), "UTF-8");
-        } catch (UnsupportedEncodingException exc) {
-            throw new RuntimeException("Unexpected exception from String constructor", exc);
-        }
-        return string;
+        int count = getVarInt();
+        return (count!=0 ? new String(getBytes(count), utf8Charset) : "");
     }
 
     /**
@@ -439,13 +455,8 @@ public class SerializedBuffer {
      * @return                          This buffer
      */
     public SerializedBuffer putString(String string) {
-        try {
-            byte[] stringBytes = string.getBytes("UTF-8");
-            putVarInt(stringBytes.length).putBytes(stringBytes);
-        } catch (UnsupportedEncodingException exc) {
-            throw new RuntimeException("Unexpected exception from String.getBytes", exc);
-        }
-        return this;
+        byte[] stringBytes = string.getBytes(utf8Charset);
+        return putVarInt(stringBytes.length).putBytes(stringBytes);
     }
 
     /**
