@@ -236,7 +236,16 @@ public class Transaction implements ByteSerializable {
      */
     @Override
     public final SerializedBuffer getBytes(SerializedBuffer outBuffer) {
-        outBuffer.putBytes(txData);
+        if (txData != null) {
+            outBuffer.putBytes(txData);
+        } else {
+            outBuffer.putInt(txVersion)
+                     .putVarInt(txInputs.size())
+                     .putBytes(txInputs)
+                     .putVarInt(txOutputs.size())
+                     .putBytes(txOutputs)
+                     .putUnsignedInt(txLockTime);
+        }
         return outBuffer;
     }
 

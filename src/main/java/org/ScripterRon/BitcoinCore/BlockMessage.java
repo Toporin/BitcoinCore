@@ -26,15 +26,24 @@ public class BlockMessage {
     /**
      * Build a 'block' message
      *
-     * @param       peer                The destination peer or null for a broadcast message
-     * @param       block               Block to be sent to the peer
-     * @return                          'block' message
+     * @param       peer                    The destination peer or null for a broadcast message
+     * @param       block                   Block to be sent to the peer
+     * @return                              'block' message
      */
     public static Message buildBlockMessage(Peer peer, Block block) {
-        //
-        // Build the message
-        //
         ByteBuffer buffer = MessageHeader.buildMessage("block", block.getBytes());
+        return new Message(buffer, peer, MessageHeader.BLOCK_CMD);
+    }
+
+    /**
+     * Build a 'block' message
+     *
+     * @param       peer                    The destination peer or null for a broadcast message
+     * @param       blockData               Serialized block
+     * @return                              'block' message
+     */
+    public static Message buildBlockMessage(Peer peer, byte[] blockData) {
+        ByteBuffer buffer = MessageHeader.buildMessage("block", blockData);
         return new Message(buffer, peer, MessageHeader.BLOCK_CMD);
     }
 

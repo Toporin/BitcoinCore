@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Ronald W Hoffman
+ * Copyright 2014 Ronald W Hoffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ import java.util.List;
 
 /**
  * A MessageListener is called during message processing to handle application-specific tasks.
+ * This abstract class provides default handlers for messages that are not used by the
+ * application.
  */
-public interface MessageListener {
+public abstract class AbstractMessageListener implements MessageListener {
 
     /**
      * Handle an inventory request
@@ -32,7 +34,9 @@ public interface MessageListener {
      * @param       peer            Peer requesting the inventory item
      * @param       invList         Inventory item list
      */
-    public void sendInventory(Peer peer, List<InventoryItem> invList);
+    @Override
+    public void sendInventory(Peer peer, List<InventoryItem> invList) {
+    }
 
     /**
      * Handle an inventory item available notification
@@ -43,7 +47,9 @@ public interface MessageListener {
      * @param       peer            Peer announcing inventory item
      * @param       invList         Inventory item list
      */
-    public void requestInventory(Peer peer, List<InventoryItem> invList);
+    @Override
+    public void requestInventory(Peer peer, List<InventoryItem> invList) {
+    }
 
     /**
      * Handle a request not found
@@ -56,7 +62,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the response
      * @param       invList         Inventory item list
      */
-    public void requestNotFound(Peer peer, List<InventoryItem> invList);
+    @Override
+    public void requestNotFound(Peer peer, List<InventoryItem> invList) {
+    }
 
     /**
      * Process a peer address list
@@ -67,7 +75,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the address list
      * @param       addresses       Peer address list
      */
-    public void processAddresses(Peer peer, List<PeerAddress> addresses);
+    @Override
+    public void processAddresses(Peer peer, List<PeerAddress> addresses) {
+    }
 
     /**
      * Process an alert
@@ -77,7 +87,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the alert message
      * @param       alert           Alert
      */
-    public void processAlert(Peer peer, Alert alert);
+    @Override
+    public void processAlert(Peer peer, Alert alert) {
+    }
 
     /**
      * Process a block
@@ -87,7 +99,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the block
      * @param       block           Block
      */
-    public void processBlock(Peer peer, Block block);
+    @Override
+    public void processBlock(Peer peer, Block block) {
+    }
 
     /**
      * Process a block header
@@ -97,7 +111,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the headers
      * @param       hdrList         Block header list
      */
-    public void processBlockHeaders(Peer peer, List<BlockHeader> hdrList);
+    @Override
+    public void processBlockHeaders(Peer peer, List<BlockHeader> hdrList) {
+    }
 
     /**
      * Process a Bloom filter load request
@@ -109,7 +125,9 @@ public interface MessageListener {
      * @param       oldFilter       Previous bloom filter
      * @param       newFilter       New bloom filter
      */
-    public void processFilterLoad(Peer peer, BloomFilter oldFilter, BloomFilter newFilter);
+    @Override
+    public void processFilterLoad(Peer peer, BloomFilter oldFilter, BloomFilter newFilter) {
+    }
 
     /**
      * Process a get address request
@@ -119,7 +137,9 @@ public interface MessageListener {
      *
      * @param       peer            Peer sending the message
      */
-    public void processGetAddress(Peer peer);
+    @Override
+    public void processGetAddress(Peer peer) {
+    }
 
     /**
      * Process a request for the latest blocks
@@ -133,7 +153,9 @@ public interface MessageListener {
      * @param       blockList       Locator block list
      * @param       stopBlock       Stop block (Sha256Hash.ZERO_HASH if all blocks should be sent)
      */
-    public void processGetBlocks(Peer peer, int version, List<Sha256Hash> blockList, Sha256Hash stopBlock);
+    @Override
+    public void processGetBlocks(Peer peer, int version, List<Sha256Hash> blockList, Sha256Hash stopBlock) {
+    }
 
     /**
      * Process a request for the latest headers
@@ -147,7 +169,9 @@ public interface MessageListener {
      * @param       blockList       Locator block list
      * @param       stopBlock       Stop block (Sha256Hash.ZERO_HASH if all blocks should be sent)
      */
-    public void processGetHeaders(Peer peer, int version, List<Sha256Hash> blockList, Sha256Hash stopBlock);
+    @Override
+    public void processGetHeaders(Peer peer, int version, List<Sha256Hash> blockList, Sha256Hash stopBlock) {
+    }
 
     /**
      * Process a Merkle block
@@ -157,7 +181,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the Merkle block
      * @param       blkHeader       Merkle block header
      */
-    public void processMerkleBlock(Peer peer, BlockHeader blkHeader);
+    @Override
+    public void processMerkleBlock(Peer peer, BlockHeader blkHeader) {
+    }
 
     /**
      * Process a ping
@@ -168,7 +194,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the ping
      * @param       nonce           Nonce
      */
-    public void processPing(Peer peer, long nonce);
+    @Override
+    public void processPing(Peer peer, long nonce) {
+    }
 
     /**
      * Process a pong
@@ -178,7 +206,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the pong
      * @param       nonce           Nonce
      */
-    public void processPong(Peer peer, long nonce);
+    @Override
+    public void processPong(Peer peer, long nonce) {
+    }
 
     /**
      * Process a message rejection
@@ -191,7 +221,9 @@ public interface MessageListener {
      * @param       description     Description of the failure
      * @param       hash            Item hash or Sha256Hash.ZERO_HASH
      */
-    public void processReject(Peer peer, String cmd, int reasonCode, String description, Sha256Hash hash);
+    @Override
+    public void processReject(Peer peer, String cmd, int reasonCode, String description, Sha256Hash hash) {
+    }
 
     /**
      * Process a transaction
@@ -201,7 +233,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the transaction
      * @param       tx              Transaction
      */
-    public void processTransaction(Peer peer, Transaction tx);
+    @Override
+    public void processTransaction(Peer peer, Transaction tx) {
+    }
 
     /**
      * Process a version message
@@ -212,7 +246,9 @@ public interface MessageListener {
      * @param       peer            Peer sending the message
      * @param       localAddress    Local address as seen by the peer
      */
-    public void processVersion(Peer peer, PeerAddress localAddress);
+    @Override
+    public void processVersion(Peer peer, PeerAddress localAddress) {
+    }
 
     /**
      * Process a version acknowledgment
@@ -221,5 +257,7 @@ public interface MessageListener {
      *
      * @param       peer            Peer sending the message
      */
-    public void processVersionAck(Peer peer);
+    @Override
+    public void processVersionAck(Peer peer) {
+    }
 }

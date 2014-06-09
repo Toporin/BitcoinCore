@@ -91,6 +91,31 @@ public class BlockHeader implements ByteSerializable {
     }
 
     /**
+     * Create a new BlockHeader
+     *
+     * @param       version             Block version
+     * @param       blockHash           Block hash
+     * @param       prevHash            Previous block hash
+     * @param       blockTime           Time block was mined (seconds since Unix epoch)
+     * @param       targetDifficulty    Target difficulty
+     * @param       merkleRoot          Merkle root
+     * @param       nonce               Block nonce
+     * @param       matches             Matching transactions
+     */
+    public BlockHeader(int version, Sha256Hash blockHash, Sha256Hash prevHash, long blockTime,
+                                long targetDifficulty, Sha256Hash merkleRoot, int nonce,
+                                List<Sha256Hash> matches) {
+        this.version = version;
+        this.blockHash = blockHash;
+        this.prevHash = prevHash;
+        this.blockTime = blockTime;
+        this.targetDifficulty = targetDifficulty;
+        this.merkleRoot = merkleRoot;
+        this.nonce = nonce;
+        this.matches = matches;
+    }
+
+    /**
      * Create a BlockHeader from the serialized block header
      *
      * @param       bytes                   Serialized data
@@ -244,6 +269,15 @@ public class BlockHeader implements ByteSerializable {
     public BigInteger getBlockWork() {
         BigInteger target = Utils.decodeCompactBits(targetDifficulty);
         return LARGEST_HASH.divide(target.add(BigInteger.ONE));
+    }
+
+    /**
+     * Returns the block nonce
+     *
+     * @return                          Block nonce
+     */
+    public int getNonce() {
+        return nonce;
     }
 
     /**

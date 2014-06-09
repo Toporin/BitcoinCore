@@ -16,7 +16,6 @@
 package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -103,21 +102,19 @@ public class VersionMessage {
             msgBuffer.skip(16+2);
         }
         //
+        // Set the random node identifier
+        //
+        msgBuffer.putLong(NODE_ID);
+        //
         // Set the agent name
         //
-        try {
         String agentName = String.format("/%s/%s/", NetParams.APPLICATION_NAME, NetParams.LIBRARY_NAME);
-            byte[] agentBytes = agentName.getBytes("UTF-8");
-            msgBuffer.putByte((byte)agentBytes.length)
-                     .putBytes(agentBytes);
-        } catch (UnsupportedEncodingException exc) {
-            throw new RuntimeException("Unable to convert string to UTF-8: "+exc.getMessage());
-        }
+        msgBuffer.putString(agentName);
         //
         // Set the chain height and transaction relay flag
         //
         msgBuffer.putInt(chainHeight);
-        msgBuffer.putByte((NetParams.SUPPORTED_SERVICES&NetParams.NODE_NETWORK)!=0 ? (byte)1 : (byte)0);
+        msgBuffer.putBoolean((NetParams.SUPPORTED_SERVICES&NetParams.NODE_NETWORK)!=0);
         //
         // Build the message
         //
@@ -150,9 +147,7 @@ public class VersionMessage {
         // Get the peer services
         //
         peer.setServices(inBuffer.getLong());
-        if ((peer.getServices()&NetParams.NODE_NETWORK) == 0)
-            throw new VerificationException("Peer does not provide network services",
-                                            NetParams.REJECT_NONSTANDARD);
+        peer.getAddress().setServices(peer.getServices());
         //
         // Get our address as seen by the peer
         //
@@ -179,15 +174,7 @@ public class VersionMessage {
         // Get the user agent
         //
         inBuffer.skip(26+8);
-        try {
-            int length = inBuffer.getByte();
-            if (length < 0 || length > 255)
-                throw new VerificationException("Agent length is greater than 255 characters");
-            byte[] agentBytes = inBuffer.getBytes(length);
-            peer.setUserAgent(new String(agentBytes, "UTF-8"));
-        } catch (UnsupportedEncodingException exc) {
-            throw new VerificationException("Agent name is not valid: "+exc.getMessage());
-        }
+        peer.setUserAgent(inBuffer.getString());
         //
         // Get the chain height and transaction relay flag (the transaction relay flag is
         // not included in earlier protocol versions)

@@ -40,15 +40,24 @@ public class TransactionMessage {
     /**
      * Build a 'tx' message
      *
-     * @param       peer                The destination peer or null for a broadcast message
-     * @param       tx                  Transaction to be sent
-     * @return                          'tx' message
+     * @param       peer                    The destination peer or null for a broadcast message
+     * @param       tx                      Transaction to be sent
+     * @return                              'tx' message
      */
     public static Message buildTransactionMessage(Peer peer, Transaction tx) {
-        //
-        // Build the message
-        //
         ByteBuffer buffer = MessageHeader.buildMessage("tx", tx.getBytes());
+        return new Message(buffer, peer, MessageHeader.TX_CMD);
+    }
+
+    /**
+     * Build a 'tx' message
+     *
+     * @param       peer                    The destination peer or null for a broadcast message
+     * @param       txData                  Serialized transaction
+     * @return                              'tx' message
+     */
+    public static Message buildTransactionMessage(Peer peer, byte[] txData) {
+        ByteBuffer buffer = MessageHeader.buildMessage("tx", txData);
         return new Message(buffer, peer, MessageHeader.TX_CMD);
     }
 

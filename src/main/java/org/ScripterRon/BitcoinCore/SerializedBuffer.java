@@ -17,7 +17,6 @@ package org.ScripterRon.BitcoinCore;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -95,6 +94,20 @@ public class SerializedBuffer {
      */
     public SerializedBuffer() {
         this(new byte[defaultSize], 0, defaultSize);
+    }
+
+    /**
+     * Creates a new serialized buffer from an input ByteBuffer.  The buffer start is
+     * set to 0 and the buffer limit is set to the ByteBuffer limit.
+     *
+     * @param       byteBuffer          Input ByteBuffer
+     */
+    public SerializedBuffer(ByteBuffer byteBuffer) {
+        bytes = byteBuffer.array();
+        bufferStart = 0;
+        bufferLimit = byteBuffer.limit();
+        offset = bufferStart;
+        segmentOffset = bufferStart;
     }
 
     /**

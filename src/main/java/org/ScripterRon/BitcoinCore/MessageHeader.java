@@ -148,7 +148,7 @@ public class MessageHeader {
      * checksum is not correct.
      *
      * @param       msgBuffer               Message buffer
-     * @return      Message command
+     * @return                              Message command
      * @throws      EOFException            End-of-data processing stream
      * @throws      VerificationException   Message verification failed
      */

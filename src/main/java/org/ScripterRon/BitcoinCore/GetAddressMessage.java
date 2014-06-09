@@ -37,4 +37,18 @@ public class GetAddressMessage {
         ByteBuffer buffer = MessageHeader.buildMessage("getaddr", new byte[0]);
         return new Message(buffer, peer, MessageHeader.GETADDR_CMD);
     }
+
+    /**
+     * Process the 'getaddr' message
+     *
+     * @param       msg                 Message
+     * @param       inBuffer            Input buffer
+     * @param       msgListener         Message listener
+     */
+    public static void processGetAddressMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener) {
+        //
+        // Notify the message listener
+        //
+        msgListener.processGetAddress(msg.getPeer());
+    }
 }

@@ -58,7 +58,7 @@ public class InventoryItem implements ByteSerializable {
      */
     public InventoryItem(SerializedBuffer inBuffer) throws EOFException {
         type = inBuffer.getInt();
-        hash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes()));
+        hash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
     }
 
     /**

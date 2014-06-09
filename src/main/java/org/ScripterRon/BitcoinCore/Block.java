@@ -305,6 +305,15 @@ public class Block implements ByteSerializable {
     }
 
     /**
+     * Returns the block nonce
+     *
+     * @return                      Block nonce
+     */
+    public int getNonce() {
+        return nonce;
+    }
+
+    /**
      * Returns the transactions in this block
      *
      * @return      Transaction list
