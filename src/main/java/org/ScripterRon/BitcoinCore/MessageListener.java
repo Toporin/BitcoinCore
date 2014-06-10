@@ -59,6 +59,16 @@ public interface MessageListener {
     public void requestNotFound(Peer peer, List<InventoryItem> invList);
 
     /**
+     * Handle a request for the transaction memory pool
+     *
+     * This method is called when a 'mempool' message is received.  The application
+     * should return an 'inv' message listing the transactions in the memory pool.
+     *
+     * @param       peer            Peer sending the request
+     */
+    public void requestMemoryPool(Peer peer);
+
+    /**
      * Process a peer address list
      *
      * This method is called when an 'addr' message is received.  The address list

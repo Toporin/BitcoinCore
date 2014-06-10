@@ -30,9 +30,6 @@ public class VersionAckMessage {
      * @return                          'verack' message
      */
     public static Message buildVersionAckMessage(Peer peer) {
-        //
-        // Build the message
-        //
         ByteBuffer buffer = MessageHeader.buildMessage("verack", new byte[0]);
         return new Message(buffer, peer, MessageHeader.VERACK_CMD);
     }
@@ -45,9 +42,6 @@ public class VersionAckMessage {
      * @param       msgListener         Message listener
      */
     public static void processVersionAckMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener) {
-        //
-        // Notify the message listener
-        //
         msgListener.processVersionAck(msg.getPeer());
     }
 }
