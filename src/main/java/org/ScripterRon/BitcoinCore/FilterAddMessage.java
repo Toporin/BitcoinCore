@@ -51,6 +51,8 @@ public class FilterAddMessage {
     /**
      * Processes a 'filteradd' message
      *
+     * The existing bloom filter will be updated
+     *
      * @param       msg                     Message
      * @param       inBuffer                Input buffer
      * @param       msgListener             Message listener

@@ -110,9 +110,20 @@ public interface MessageListener {
     public void processBlockHeaders(Peer peer, List<BlockHeader> hdrList);
 
     /**
+     * Process a Bloom filter clear request
+     *
+     * This method is called when a 'filterclear' message is received.  The peer
+     * Bloom filter has been cleared before this method is called.
+     *
+     * @param       peer            Peer sending the message
+     * @param       oldFilter       Previous bloom filter
+     */
+    public void processFilterClear(Peer peer, BloomFilter oldFilter);
+
+    /**
      * Process a Bloom filter load request
      *
-     * This method is called when a 'filterload' message is received.  The peer bloom
+     * This method is called when a 'filterload' message is received.  The peer Bloom
      * filter has been updated before this method is called.
      *
      * @param       peer            Peer sending the message

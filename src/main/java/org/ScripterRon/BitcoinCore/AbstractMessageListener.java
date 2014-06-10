@@ -128,6 +128,19 @@ public abstract class AbstractMessageListener implements MessageListener {
     }
 
     /**
+     * Process a Bloom filter clear request
+     *
+     * This method is called when a 'filterclear' message is received.  The peer
+     * Bloom filter has been cleared before this method is called.
+     *
+     * @param       peer            Peer sending the message
+     * @param       oldFilter       Previous bloom filter
+     */
+    @Override
+    public void processFilterClear(Peer peer, BloomFilter oldFilter) {
+    }
+
+    /**
      * Process a Bloom filter load request
      *
      * This method is called when a 'filterload' message is received.  The peer bloom
