@@ -76,10 +76,11 @@ public class Transaction implements ByteSerializable {
      * @param       inputs                  List of signed inputs
      * @param       outputs                 List of outputs
      * @throws      ECException             Unable to sign transaction
+     * @throws      ScriptException         Script processing error
      * @throws      VerificationException   Transaction verification failure
      */
     public Transaction(List<SignedInput> inputs, List<TransactionOutput> outputs)
-                                            throws ECException, VerificationException {
+                                            throws ECException, ScriptException, VerificationException {
         SerializedBuffer outBuffer = new SerializedBuffer(1024);
         txVersion = 1;
         txOutputs = outputs;
@@ -442,17 +443,17 @@ public class Transaction implements ByteSerializable {
      * @param       sigHashType             Signature hash type
      * @param       subScriptBytes          Replacement script for the current input
      * @param       outBuffer               Output buffer
-     * @throws      VerificationException   Invalid transaction index
+     * @throws      ScriptException         Transaction index out-of-range
      */
     public final void serializeForSignature(int index, int sigHashType, byte[] subScriptBytes,
-                                            SerializedBuffer outBuffer) throws VerificationException {
+                                            SerializedBuffer outBuffer) throws ScriptException {
         int hashType;
         boolean anyoneCanPay;
         //
         // The transaction input must be within range
         //
         if (index < 0 || index >= txInputs.size())
-            throw new VerificationException("Transaction input index is not valid");
+            throw new ScriptException("Transaction input index is not valid");
         //
         // Check for a valid hash type
         //
@@ -520,7 +521,7 @@ public class Transaction implements ByteSerializable {
             // The output list is resized to the input index+1
             //
             if (txOutputs.size() <= index)
-                throw new VerificationException("Input index out-of-range for SIGHASH_SINGLE");
+                throw new ScriptException("Input index out-of-range for SIGHASH_SINGLE");
             outBuffer.putVarInt(index+1);
             for (TransactionOutput txOutput : txOutputs) {
                 if (txOutput.getIndex() > index)
