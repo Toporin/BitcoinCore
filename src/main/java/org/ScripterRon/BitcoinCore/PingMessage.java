@@ -66,6 +66,6 @@ public class PingMessage {
         //
         // Notify the message listener
         //
-        msgListener.processPing(msg.getPeer(), nonce);
+        msgListener.processPing(msg, nonce);
     }
 }

@@ -33,6 +33,18 @@ import java.io.EOFException;
  */
 public class InventoryItem implements ByteSerializable {
 
+    /** Inventory error code */
+    public static final int INV_ERROR = 0;
+
+    /** Transaction inventory item */
+    public static final int INV_TX = 1;
+
+    /** Block inventory item */
+    public static final int INV_BLOCK = 2;
+
+    /** Filtered block inventory item */
+    public static final int INV_FILTERED_BLOCK = 3;
+
     /** Item hash */
     private final Sha256Hash hash;
 

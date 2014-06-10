@@ -141,7 +141,7 @@ public class VersionMessage {
         int version = inBuffer.getInt();
         if (version < NetParams.MIN_PROTOCOL_VERSION)
             throw new VerificationException(String.format("Protocol version %d is not supported", version),
-                                            NetParams.REJECT_OBSOLETE);
+                                            RejectMessage.REJECT_OBSOLETE);
         peer.setVersion(version);
         //
         // Get the peer services
@@ -184,6 +184,6 @@ public class VersionMessage {
         //
         // Notify the message listener
         //
-        msgListener.processVersion(peer, localAddress);
+        msgListener.processVersion(msg, localAddress);
     }
 }

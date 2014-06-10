@@ -209,9 +209,11 @@ public class Transaction implements ByteSerializable {
         // Transaction must have at least one input and one output
         //
         if (inCount == 0)
-            throw new VerificationException("Transaction has no inputs", NetParams.REJECT_INVALID, txHash);
+            throw new VerificationException("Transaction has no inputs",
+                                            RejectMessage.REJECT_INVALID, txHash);
         if (outCount == 0)
-            throw new VerificationException("Transaction has no outputs", NetParams.REJECT_INVALID, txHash);
+            throw new VerificationException("Transaction has no outputs",
+                                            RejectMessage.REJECT_INVALID, txHash);
         //
         // Calculate the normalized transaction ID
         //
@@ -390,7 +392,7 @@ public class Transaction implements ByteSerializable {
             // Must have at least one input and one output
             if (txInputs.isEmpty() || txOutputs.isEmpty())
                 throw new VerificationException("Transaction does not have at least 1 input and 1 output",
-                                                NetParams.REJECT_INVALID, txHash);
+                                                RejectMessage.REJECT_INVALID, txHash);
             // No output value may be negative
             // Sum of all output values must not exceed MAX_MONEY
             // The number of sigops in an output script may not exceed MAX_SIG_OPS
@@ -399,15 +401,15 @@ public class Transaction implements ByteSerializable {
                 BigInteger outValue = txOut.getValue();
                 if (outValue.signum() < 0)
                     throw new VerificationException("Transaction output value is negative",
-                                                    NetParams.REJECT_INVALID, txHash);
+                                                    RejectMessage.REJECT_INVALID, txHash);
                 outTotal = outTotal.add(outValue);
                 if (outTotal.compareTo(NetParams.MAX_MONEY) > 0)
                     throw new VerificationException("Total transaction output amount exceeds maximum",
-                                                    NetParams.REJECT_INVALID, txHash);
+                                                    RejectMessage.REJECT_INVALID, txHash);
                 byte[] scriptBytes = txOut.getScriptBytes();
                 if (!Script.countSigOps(scriptBytes))
                     throw new VerificationException("Too many script signature operations",
-                                                    NetParams.REJECT_NONSTANDARD, txHash);
+                                                    RejectMessage.REJECT_NONSTANDARD, txHash);
             }
             if (!coinBase) {
                 // All inputs must have connected outputs
@@ -418,21 +420,21 @@ public class Transaction implements ByteSerializable {
                     OutPoint outPoint = txIn.getOutPoint();
                     if (outPoint.getHash().equals(Sha256Hash.ZERO_HASH) || outPoint.getIndex() < 0)
                         throw new VerificationException("Non-coinbase transaction contains unconnected inputs",
-                                                        NetParams.REJECT_INVALID, txHash);
+                                                        RejectMessage.REJECT_INVALID, txHash);
                     if (outPoints.contains(outPoint))
                         throw new VerificationException("Connected output used in multiple inputs",
-                                                        NetParams.REJECT_INVALID, txHash);
+                                                        RejectMessage.REJECT_INVALID, txHash);
                     outPoints.add(outPoint);
                     if (canonical) {
                         if (!Script.checkInputScript(txIn.getScriptBytes()))
                             throw new VerificationException("Input script must contain only canonical push-data operations",
-                                                            NetParams.REJECT_NONSTANDARD, txHash);
+                                                            RejectMessage.REJECT_NONSTANDARD, txHash);
                     }
                 }
             }
         } catch (EOFException exc) {
             throw new VerificationException("End-of-data while processing script",
-                                            NetParams.REJECT_MALFORMED, txHash);
+                                            RejectMessage.REJECT_MALFORMED, txHash);
         }
     }
 

@@ -49,6 +49,6 @@ public class GetAddressMessage {
         //
         // Notify the message listener
         //
-        msgListener.processGetAddress(msg.getPeer());
+        msgListener.processGetAddress(msg);
     }
 }

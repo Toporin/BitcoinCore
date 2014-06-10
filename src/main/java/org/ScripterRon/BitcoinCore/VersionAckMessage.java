@@ -42,6 +42,6 @@ public class VersionAckMessage {
      * @param       msgListener         Message listener
      */
     public static void processVersionAckMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener) {
-        msgListener.processVersionAck(msg.getPeer());
+        msgListener.processVersionAck(msg);
     }
 }

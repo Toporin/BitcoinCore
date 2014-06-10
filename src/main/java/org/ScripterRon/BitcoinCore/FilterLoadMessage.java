@@ -77,6 +77,6 @@ public class FilterLoadMessage {
         //
         // Notify the message listener
         //
-        msgListener.processFilterLoad(peer, oldFilter, newFilter);
+        msgListener.processFilterLoad(msg, oldFilter, newFilter);
     }
 }

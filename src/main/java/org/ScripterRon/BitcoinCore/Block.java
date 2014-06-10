@@ -461,18 +461,19 @@ public class Block implements ByteSerializable {
         //
         BigInteger target = getTargetDifficultyAsInteger();
         if (target.signum() <= 0 || target.compareTo(NetParams.PROOF_OF_WORK_LIMIT) > 0)
-            throw new VerificationException("Target difficulty is not valid", NetParams.REJECT_INVALID, blockHash);
+            throw new VerificationException("Target difficulty is not valid",
+                                            RejectMessage.REJECT_INVALID, blockHash);
         BigInteger hash = getHash().toBigInteger();
         if (hash.compareTo(target) > 0)
             throw new VerificationException("Block hash is higher than target difficulty",
-                                            NetParams.REJECT_INVALID, blockHash);
+                                            RejectMessage.REJECT_INVALID, blockHash);
         //
         // Verify the block timestamp
         //
         long currentTime = System.currentTimeMillis()/1000;
         if (timeStamp > currentTime+NetParams.ALLOWED_TIME_DRIFT)
             throw new VerificationException("Block timestamp is too far in the future",
-                                            NetParams.REJECT_INVALID, blockHash);
+                                            RejectMessage.REJECT_INVALID, blockHash);
         //
         // Check that there is just one coinbase transaction and it is the first transaction in the block
         //
@@ -481,11 +482,11 @@ public class Block implements ByteSerializable {
             if (tx.isCoinBase()) {
                 if (foundCoinBase)
                     throw new VerificationException("Block contains multiple coinbase transactions",
-                                                    NetParams.REJECT_MALFORMED, blockHash);
+                                                    RejectMessage.REJECT_MALFORMED, blockHash);
                 foundCoinBase = true;
             } else if (!foundCoinBase) {
                 throw new VerificationException("First transaction in block is not the coinbase transaction",
-                                                NetParams.REJECT_MALFORMED, blockHash);
+                                                RejectMessage.REJECT_MALFORMED, blockHash);
             }
         }
         //
@@ -493,7 +494,8 @@ public class Block implements ByteSerializable {
         //
         Sha256Hash checkRoot = calculateMerkleRoot();
         if (!checkRoot.equals(merkleRoot))
-            throw new VerificationException("Merkle root is not correct", NetParams.REJECT_INVALID, blockHash);
+            throw new VerificationException("Merkle root is not correct",
+                                            RejectMessage.REJECT_INVALID, blockHash);
         //
         // Verify the transactions in the block
         //
@@ -515,7 +517,7 @@ public class Block implements ByteSerializable {
                 for (TransactionInput txInput : txInputs) {
                     if (txInput.getSeqNumber() != -1)
                         throw new VerificationException("Transaction lock time greater than block time",
-                                                        NetParams.REJECT_INVALID, tx.getHash());
+                                                        RejectMessage.REJECT_INVALID, tx.getHash());
                 }
             }
         }

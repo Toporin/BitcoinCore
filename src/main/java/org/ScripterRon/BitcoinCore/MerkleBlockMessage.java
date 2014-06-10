@@ -93,11 +93,11 @@ public class MerkleBlockMessage {
         List<Sha256Hash> matches = new LinkedList<>();
         Sha256Hash merkleRoot = merkleBranch.calculateMerkleRoot(matches);
         if (!merkleRoot.equals(blockHeader.getMerkleRoot()))
-            throw new VerificationException("Merkle root is incorrect", NetParams.REJECT_INVALID);
+            throw new VerificationException("Merkle root is incorrect", RejectMessage.REJECT_INVALID);
         blockHeader.setMatches(matches);
         //
         // Notify the message listener that a block is ready for processing
         //
-        msgListener.processMerkleBlock(msg.getPeer(), blockHeader);
+        msgListener.processMerkleBlock(msg, blockHeader);
     }
 }

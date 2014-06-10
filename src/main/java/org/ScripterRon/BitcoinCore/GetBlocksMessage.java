@@ -89,6 +89,6 @@ public class GetBlocksMessage {
         //
         // Notify the message listener
         //
-        msgListener.processGetBlocks(msg.getPeer(), version, blockList, stopBlock);
+        msgListener.processGetBlocks(msg, version, blockList, stopBlock);
     }
 }

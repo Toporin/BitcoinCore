@@ -105,6 +105,6 @@ public class AlertMessage {
         //
         // Notify the application message listener
         //
-        msgListener.processAlert(msg.getPeer(), new Alert(payload, signature));
+        msgListener.processAlert(msg, new Alert(payload, signature));
     }
 }

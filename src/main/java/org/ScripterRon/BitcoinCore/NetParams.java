@@ -114,42 +114,6 @@ public class NetParams {
     /** Maximum amount of money in the Bitcoin system */
     public static final BigInteger MAX_MONEY = new BigInteger("2100000000000000", 10);
 
-    /** Inventory error code */
-    public static final int INV_ERROR = 0;
-
-    /** Transaction inventory item */
-    public static final int INV_TX = 1;
-
-    /** Block inventory item */
-    public static final int INV_BLOCK = 2;
-
-    /** Filtered block inventory item */
-    public static final int INV_FILTERED_BLOCK = 3;
-
-    /** Malformed message */
-    public static final int REJECT_MALFORMED = 0x01;
-
-    /** Invalid message */
-    public static final int REJECT_INVALID = 0x10;
-
-    /** Obsolete message */
-    public static final int REJECT_OBSOLETE = 0x11;
-
-    /** Duplicate transaction */
-    public static final int REJECT_DUPLICATE = 0x12;
-
-    /** Non-standard transaction */
-    public static final int REJECT_NONSTANDARD = 0x40;
-
-    /** Dust transaction */
-    public static final int REJECT_DUST = 0x41;
-
-    /** Insufficient fee provided */
-    public static final int REJECT_INSUFFICIENT_FEE = 0x42;
-
-    /** Block checkpoint mismatch */
-    public static final int REJECT_CHECKPOINT = 0x43;
-
     /**
      * Configure the network parameters
      *

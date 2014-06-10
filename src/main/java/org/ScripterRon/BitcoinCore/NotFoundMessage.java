@@ -78,6 +78,6 @@ public class NotFoundMessage {
         //
         // Notify the message listener
         //
-        msgListener.requestNotFound(msg.getPeer(), itemList);
+        msgListener.requestNotFound(msg, itemList);
     }
 }

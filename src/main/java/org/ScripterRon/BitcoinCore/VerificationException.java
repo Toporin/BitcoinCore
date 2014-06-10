@@ -25,7 +25,7 @@ public class VerificationException extends Exception {
     protected Sha256Hash hash = Sha256Hash.ZERO_HASH;
 
     /** The reason for the exception */
-    protected int reason = NetParams.REJECT_INVALID;
+    protected int reason = RejectMessage.REJECT_INVALID;
 
     /**
      * Creates a new exception with a detail message

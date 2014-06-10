@@ -165,18 +165,18 @@ public class BlockHeader implements ByteSerializable {
             BigInteger target = Utils.decodeCompactBits(targetDifficulty);
             if (target.signum() <= 0 || target.compareTo(NetParams.PROOF_OF_WORK_LIMIT) > 0)
                 throw new VerificationException("Target difficulty is not valid",
-                                                NetParams.REJECT_INVALID, blockHash);
+                                                RejectMessage.REJECT_INVALID, blockHash);
             BigInteger hash = blockHash.toBigInteger();
             if (hash.compareTo(target) > 0)
                 throw new VerificationException("Block hash is higher than target difficulty",
-                                                NetParams.REJECT_INVALID, blockHash);
+                                                RejectMessage.REJECT_INVALID, blockHash);
             //
             // Verify the block timestamp
             //
             long currentTime = System.currentTimeMillis()/1000;
             if (blockTime > currentTime+NetParams.ALLOWED_TIME_DRIFT)
                 throw new VerificationException("Block timestamp is too far in the future",
-                                                NetParams.REJECT_INVALID, blockHash);
+                                                RejectMessage.REJECT_INVALID, blockHash);
         }
     }
 

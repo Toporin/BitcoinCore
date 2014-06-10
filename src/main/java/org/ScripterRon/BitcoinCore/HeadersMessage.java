@@ -72,7 +72,7 @@ public class HeadersMessage {
         //
         int count = inBuffer.getVarInt();
         if (count < 0 || count > 2000)
-            throw new VerificationException("More than 2000 headers", NetParams.REJECT_INVALID);
+            throw new VerificationException("More than 2000 headers", RejectMessage.REJECT_INVALID);
         List<BlockHeader> hdrList = new ArrayList<>(count);
         for (int i=0; i<count; i++) {
             hdrList.add(new BlockHeader(inBuffer, true));
@@ -81,6 +81,6 @@ public class HeadersMessage {
         //
         // Notify the message listener
         //
-        msgListener.processBlockHeaders(msg.getPeer(), hdrList);
+        msgListener.processBlockHeaders(msg, hdrList);
     }
 }

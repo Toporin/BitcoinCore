@@ -17,6 +17,8 @@ package org.ScripterRon.BitcoinCore;
 
 import java.io.EOFException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * <p>A 'reject' message is sent when the receiver rejects a message.  The message
@@ -35,6 +37,43 @@ import java.nio.ByteBuffer;
  * </pre>
  */
 public class RejectMessage {
+
+    /** Malformed message */
+    public static final int REJECT_MALFORMED = 0x01;
+
+    /** Invalid message */
+    public static final int REJECT_INVALID = 0x10;
+
+    /** Obsolete message */
+    public static final int REJECT_OBSOLETE = 0x11;
+
+    /** Duplicate transaction */
+    public static final int REJECT_DUPLICATE = 0x12;
+
+    /** Non-standard transaction */
+    public static final int REJECT_NONSTANDARD = 0x40;
+
+    /** Dust transaction */
+    public static final int REJECT_DUST = 0x41;
+
+    /** Insufficient fee provided */
+    public static final int REJECT_INSUFFICIENT_FEE = 0x42;
+
+    /** Block checkpoint mismatch */
+    public static final int REJECT_CHECKPOINT = 0x43;
+
+    /** Reject message reason code mappings */
+    public static final Map<Integer, String> reasonCodes = new HashMap<>();
+    static {
+        reasonCodes.put(REJECT_MALFORMED, "Malformed");
+        reasonCodes.put(REJECT_INVALID, "Invalid");
+        reasonCodes.put(REJECT_OBSOLETE, "Obsolete");
+        reasonCodes.put(REJECT_DUPLICATE, "Duplicate");
+        reasonCodes.put(REJECT_NONSTANDARD, "Nonstandard");
+        reasonCodes.put(REJECT_DUST, "Dust");
+        reasonCodes.put(REJECT_INSUFFICIENT_FEE, "Insufficient fee");
+        reasonCodes.put(REJECT_CHECKPOINT, "Checkpoint");
+    }
 
     /**
      * Builds a 'reject' message to be sent to the destination peer
@@ -107,6 +146,6 @@ public class RejectMessage {
         //
         // Notify the message listener
         //
-        msgListener.processReject(msg.getPeer(), cmd, reasonCode, desc, hash);
+        msgListener.processReject(msg, cmd, reasonCode, desc, hash);
     }
 }

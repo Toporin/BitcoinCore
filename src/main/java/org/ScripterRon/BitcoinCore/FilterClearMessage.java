@@ -49,11 +49,14 @@ public class FilterClearMessage {
         //
         // Clear the current Bloom filter
         //
-        BloomFilter oldFilter = peer.getBloomFilter();
-        peer.setBloomFilter(null);
+        BloomFilter oldFilter;
+        synchronized(peer) {
+            oldFilter = peer.getBloomFilter();
+            peer.setBloomFilter(null);
+        }
         //
         // Notify the message listener
         //
-        msgListener.processFilterClear(peer, oldFilter);
+        msgListener.processFilterClear(msg, oldFilter);
     }
 }

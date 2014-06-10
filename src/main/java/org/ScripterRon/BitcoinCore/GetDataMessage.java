@@ -76,6 +76,6 @@ public class GetDataMessage {
         //
         // Notify the message listener
         //
-        msgListener.sendInventory(msg.getPeer(), itemList);
+        msgListener.sendInventory(msg, itemList);
     }
 }

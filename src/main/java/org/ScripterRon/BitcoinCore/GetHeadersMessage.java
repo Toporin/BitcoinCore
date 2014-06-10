@@ -93,6 +93,6 @@ public class GetHeadersMessage {
         //
         // Notify the message listener
         //
-        msgListener.processGetHeaders(msg.getPeer(), version, blockList, stopBlock);
+        msgListener.processGetHeaders(msg, version, blockList, stopBlock);
     }
 }

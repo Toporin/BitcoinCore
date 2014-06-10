@@ -64,6 +64,6 @@ public class PongMessage {
         //
         // Notify the message listener
         //
-        msgListener.processPong(msg.getPeer(), nonce);
+        msgListener.processPong(msg, nonce);
     }
 }

@@ -79,6 +79,6 @@ public class TransactionMessage {
         //
         // Notify the message listener that a transaction is ready for processing
         //
-        msgListener.processTransaction(msg.getPeer(), tx);
+        msgListener.processTransaction(msg, tx);
     }
 }

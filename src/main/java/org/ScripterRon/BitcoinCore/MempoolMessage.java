@@ -44,6 +44,6 @@ public class MempoolMessage {
      * @param       msgListener     Message listener
      */
     public static void processMempoolMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener) {
-        msgListener.requestMemoryPool(msg.getPeer());
+        msgListener.requestMemoryPool(msg);
     }
 }

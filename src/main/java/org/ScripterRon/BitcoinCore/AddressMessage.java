@@ -125,6 +125,6 @@ public class AddressMessage {
         // Notify the application message listener
         //
         if (!addresses.isEmpty())
-            msgListener.processAddresses(msg.getPeer(), addresses);
+            msgListener.processAddresses(msg, addresses);
     }
 }

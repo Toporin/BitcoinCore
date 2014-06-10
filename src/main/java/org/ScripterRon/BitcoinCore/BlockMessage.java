@@ -65,6 +65,6 @@ public class BlockMessage {
         //
         // Notify the message listener
         //
-        msgListener.processBlock(msg.getPeer(), block);
+        msgListener.processBlock(msg, block);
     }
 }

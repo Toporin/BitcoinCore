@@ -75,7 +75,8 @@ public class InventoryMessage {
         //
         int count = inBuffer.getVarInt();
         if (count < 0 || count > 1000)
-            throw new VerificationException("More than 1000 entries in 'inv' message", NetParams.REJECT_INVALID);
+            throw new VerificationException("More than 1000 entries in 'inv' message",
+                                            RejectMessage.REJECT_INVALID);
         //
         // Build the item list
         //
@@ -85,6 +86,6 @@ public class InventoryMessage {
         //
         // Notify the message listener
         //
-        msgListener.requestInventory(msg.getPeer(), itemList);
+        msgListener.requestInventory(msg, itemList);
     }
 }

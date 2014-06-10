@@ -60,7 +60,7 @@ public class MerkleBranch implements ByteSerializable {
     private int hashesUsed;
 
     /** Transaction count */
-    private int txCount;
+    private final int txCount;
 
     /** Merkle branch node hashes in big-endian format */
     private List<byte[]> nodeHashes;
@@ -82,14 +82,14 @@ public class MerkleBranch implements ByteSerializable {
         txCount = inBuffer.getInt();
         if (txCount < 1 || txCount > NetParams.MAX_BLOCK_SIZE/60)
             throw new VerificationException(String.format("Transaction count %d is not valid", txCount),
-                                            NetParams.REJECT_INVALID);
+                                            RejectMessage.REJECT_INVALID);
         //
         // Get the node hashes
         //
         int hashCount = inBuffer.getVarInt();
         if (hashCount < 0 || hashCount > txCount)
             throw new VerificationException(String.format("Hash count %d is not valid", hashCount),
-                                            NetParams.REJECT_INVALID);
+                                            RejectMessage.REJECT_INVALID);
         nodeHashes = new ArrayList<>(hashCount);
         for (int i=0; i<hashCount; i++)
             nodeHashes.add(Utils.reverseBytes(inBuffer.getBytes(32)));
@@ -99,7 +99,7 @@ public class MerkleBranch implements ByteSerializable {
         int flagCount = inBuffer.getVarInt();
         if (flagCount < 1)
             throw new VerificationException(String.format("Flag count %d is not valid", flagCount),
-                                            NetParams.REJECT_INVALID);
+                                            RejectMessage.REJECT_INVALID);
         nodeFlags = inBuffer.getBytes(flagCount);
     }
 
@@ -228,7 +228,7 @@ public class MerkleBranch implements ByteSerializable {
         if (hashesUsed != nodeHashes.size())
             throw new VerificationException(String.format("Merkle branch used %d of %d hashes",
                                                           hashesUsed, nodeHashes.size()),
-                                                          NetParams.REJECT_INVALID);
+                                                          RejectMessage.REJECT_INVALID);
         return new Sha256Hash(merkleRoot);
     }
 
@@ -359,7 +359,7 @@ public class MerkleBranch implements ByteSerializable {
                                     throws VerificationException {
         if (bitsUsed >= nodeFlags.length*8)
             throw new VerificationException("Merkle branch overflowed the bits array",
-                                            NetParams.REJECT_INVALID);
+                                            RejectMessage.REJECT_INVALID);
         boolean parentOfMatch = Utils.checkBitLE(nodeFlags, bitsUsed++);
         if (height == 0 || !parentOfMatch) {
             //
@@ -368,7 +368,7 @@ public class MerkleBranch implements ByteSerializable {
             //
             if (hashesUsed >= nodeHashes.size())
                 throw new VerificationException("Merkle branch overflowed the hash array",
-                                                NetParams.REJECT_INVALID);
+                                                RejectMessage.REJECT_INVALID);
             if (height == 0 && parentOfMatch)
                 matchedHashes.add(new Sha256Hash(nodeHashes.get(hashesUsed)));
             return nodeHashes.get(hashesUsed++);
