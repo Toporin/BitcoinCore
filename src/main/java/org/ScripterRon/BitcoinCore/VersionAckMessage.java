@@ -31,7 +31,7 @@ public class VersionAckMessage {
      */
     public static Message buildVersionAckMessage(Peer peer) {
         ByteBuffer buffer = MessageHeader.buildMessage("verack", new byte[0]);
-        return new Message(buffer, peer, MessageHeader.VERACK_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.VERACK);
     }
 
     /**

@@ -44,7 +44,7 @@ public class PongMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("pong", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.PONG_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.PONG);
     }
 
     /**

@@ -59,7 +59,7 @@ public class GetBlocksMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("getblocks", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.GETBLOCKS_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.GETBLOCKS);
     }
 
     /**

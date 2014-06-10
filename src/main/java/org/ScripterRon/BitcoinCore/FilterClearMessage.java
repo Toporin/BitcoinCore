@@ -32,7 +32,7 @@ public class FilterClearMessage {
      */
     public static Message buildFilterClearMessage(Peer peer) {
         ByteBuffer buffer = MessageHeader.buildMessage("filterclear", new byte[0]);
-        return new Message(buffer, peer, MessageHeader.FILTERCLEAR_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.FILTERCLEAR);
     }
 
     /**

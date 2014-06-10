@@ -46,7 +46,7 @@ public class PingMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("ping", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.PING_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.PING);
     }
 
     /**

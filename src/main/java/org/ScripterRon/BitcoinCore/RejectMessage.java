@@ -73,7 +73,7 @@ public class RejectMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("reject", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.REJECT_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.REJECT);
     }
 
     /**

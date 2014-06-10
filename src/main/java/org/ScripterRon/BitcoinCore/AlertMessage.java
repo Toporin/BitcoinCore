@@ -72,7 +72,7 @@ public class AlertMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("alert", msgData);
-        Message msg = new Message(buffer, peer, MessageHeader.ALERT_CMD);
+        Message msg = new Message(buffer, peer, MessageHeader.MessageCommand.ALERT);
         return msg;
     }
 

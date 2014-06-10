@@ -53,7 +53,7 @@ public class HeadersMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("headers", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.HEADERS_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.HEADERS);
     }
 
     /**

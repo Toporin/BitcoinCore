@@ -119,7 +119,7 @@ public class VersionMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("version", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.VERSION_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.VERSION);
     }
 
     /**

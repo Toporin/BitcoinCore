@@ -86,7 +86,7 @@ public class AddressMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("addr", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.ADDR_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.ADDR);
     }
 
     /**

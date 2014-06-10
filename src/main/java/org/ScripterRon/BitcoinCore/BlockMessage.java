@@ -32,7 +32,7 @@ public class BlockMessage {
      */
     public static Message buildBlockMessage(Peer peer, Block block) {
         ByteBuffer buffer = MessageHeader.buildMessage("block", block.getBytes());
-        return new Message(buffer, peer, MessageHeader.BLOCK_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.BLOCK);
     }
 
     /**
@@ -44,7 +44,7 @@ public class BlockMessage {
      */
     public static Message buildBlockMessage(Peer peer, byte[] blockData) {
         ByteBuffer buffer = MessageHeader.buildMessage("block", blockData);
-        return new Message(buffer, peer, MessageHeader.BLOCK_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.BLOCK);
     }
 
     /**

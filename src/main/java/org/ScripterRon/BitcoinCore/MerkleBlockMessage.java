@@ -69,7 +69,7 @@ public class MerkleBlockMessage {
         // Create the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("merkleblock", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.MERKLEBLOCK_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.MERKLEBLOCK);
     }
     /**
      * Processes the 'merkleblock' message

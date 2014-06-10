@@ -49,7 +49,7 @@ public class FilterLoadMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("filterload", filter.getBytes());
-        return new Message(buffer, peer, MessageHeader.FILTERLOAD_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.FILTERLOAD);
     }
 
     /**

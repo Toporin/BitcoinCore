@@ -56,7 +56,7 @@ public class InventoryMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("inv", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.INV_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.INV);
     }
 
     /**

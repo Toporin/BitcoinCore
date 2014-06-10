@@ -33,7 +33,7 @@ public class Message {
     private Peer peer;
 
     /** The message command */
-    private int command;
+    private MessageHeader.MessageCommand command;
 
     /** Deferred restart index */
     private int restartIndex;
@@ -51,7 +51,7 @@ public class Message {
      * @param       peer            Associated peer or null for a broadcast message
      * @param       cmd             Message command
      */
-    public Message(ByteBuffer buffer, Peer peer, int cmd) {
+    public Message(ByteBuffer buffer, Peer peer, MessageHeader.MessageCommand cmd) {
         this.buffer = buffer;
         this.peer = peer;
         this.command = cmd;
@@ -116,7 +116,7 @@ public class Message {
      *
      * @return                      Message command
      */
-    public int getCommand() {
+    public MessageHeader.MessageCommand getCommand() {
         return command;
     }
 
@@ -125,7 +125,7 @@ public class Message {
      *
      * @param       cmd             Message command
      */
-    public void setCommand(int cmd) {
+    public void setCommand(MessageHeader.MessageCommand cmd) {
         command = cmd;
     }
 

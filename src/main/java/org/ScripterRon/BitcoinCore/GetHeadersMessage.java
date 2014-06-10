@@ -60,7 +60,7 @@ public class GetHeadersMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("getheaders", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.GETHEADERS_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.GETHEADERS);
     }
 
     /**

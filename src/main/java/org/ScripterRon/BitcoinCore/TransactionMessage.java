@@ -46,7 +46,7 @@ public class TransactionMessage {
      */
     public static Message buildTransactionMessage(Peer peer, Transaction tx) {
         ByteBuffer buffer = MessageHeader.buildMessage("tx", tx.getBytes());
-        return new Message(buffer, peer, MessageHeader.TX_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.TX);
     }
 
     /**
@@ -58,7 +58,7 @@ public class TransactionMessage {
      */
     public static Message buildTransactionMessage(Peer peer, byte[] txData) {
         ByteBuffer buffer = MessageHeader.buildMessage("tx", txData);
-        return new Message(buffer, peer, MessageHeader.TX_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.TX);
     }
 
     /**

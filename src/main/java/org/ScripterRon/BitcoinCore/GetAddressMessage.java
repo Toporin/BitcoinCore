@@ -35,7 +35,7 @@ public class GetAddressMessage {
         // The 'getaddr' message consists of just the message header
         //
         ByteBuffer buffer = MessageHeader.buildMessage("getaddr", new byte[0]);
-        return new Message(buffer, peer, MessageHeader.GETADDR_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.GETADDR);
     }
 
     /**

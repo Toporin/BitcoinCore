@@ -44,52 +44,54 @@ public class MessageHeader {
     };
 
     /** Message commands */
-    public static final int ADDR_CMD = 1;
-    public static final int ALERT_CMD = 2;
-    public static final int BLOCK_CMD = 3;
-    public static final int FILTERADD_CMD = 4;
-    public static final int FILTERCLEAR_CMD = 5;
-    public static final int FILTERLOAD_CMD = 6;
-    public static final int GETADDR_CMD = 7;
-    public static final int GETBLOCKS_CMD = 8;
-    public static final int GETDATA_CMD = 9;
-    public static final int GETHEADERS_CMD = 10;
-    public static final int HEADERS_CMD = 11;
-    public static final int INV_CMD = 12;
-    public static final int MEMPOOL_CMD = 13;
-    public static final int MERKLEBLOCK_CMD = 14;
-    public static final int NOTFOUND_CMD = 15;
-    public static final int PING_CMD = 16;
-    public static final int PONG_CMD = 17;
-    public static final int REJECT_CMD = 18;
-    public static final int TX_CMD = 19;
-    public static final int VERACK_CMD = 20;
-    public static final int VERSION_CMD = 21;
+    public enum MessageCommand {
+        ADDR,                       // 'addr' message
+        ALERT,                      // 'alert' message
+        BLOCK,                      // 'block' message
+        FILTERADD,                  // 'filteradd' message
+        FILTERCLEAR,                // 'filterclear' message
+        FILTERLOAD,                 // 'filterload' message
+        GETADDR,                    // 'getaddr' message
+        GETBLOCKS,                  // 'getblocks' message
+        GETDATA,                    // 'getdata' message
+        GETHEADERS,                 // 'getheaders' message
+        HEADERS,                    // 'headers' message
+        INV,                        // 'inv' message
+        MEMPOOL,                    // 'mempool' message
+        MERKLEBLOCK,                // 'merkleblock' message
+        NOTFOUND,                   // 'notfound' message
+        PING,                       // 'ping' message
+        PONG,                       // 'pong' message
+        REJECT,                     // 'reject' message
+        TX,                         // 'tx' message
+        VERACK,                     // 'verack' message
+        VERSION                     // 'version' message
+    }
 
     /** Message command map */
-    public static final Map<String, Integer> cmdMap = new HashMap<>();
+    public static final Map<String, MessageCommand> cmdMap = new HashMap<>();
     static {
-        cmdMap.put("addr", ADDR_CMD);
-        cmdMap.put("alert", ALERT_CMD);
-        cmdMap.put("block", BLOCK_CMD);
-        cmdMap.put("filteradd", FILTERADD_CMD);
-        cmdMap.put("filterclear", FILTERCLEAR_CMD);
-        cmdMap.put("filterload", FILTERLOAD_CMD);
-        cmdMap.put("getaddr", GETADDR_CMD);
-        cmdMap.put("getblocks", GETBLOCKS_CMD);
-        cmdMap.put("getdata", GETDATA_CMD);
-        cmdMap.put("getheaders", GETHEADERS_CMD);
-        cmdMap.put("headers", HEADERS_CMD);
-        cmdMap.put("inv", INV_CMD);
-        cmdMap.put("mempool", MEMPOOL_CMD);
-        cmdMap.put("merkleblock", MERKLEBLOCK_CMD);
-        cmdMap.put("notfound", NOTFOUND_CMD);
-        cmdMap.put("ping", PING_CMD);
-        cmdMap.put("pong", PONG_CMD);
-        cmdMap.put("reject", REJECT_CMD);
-        cmdMap.put("tx", TX_CMD);
-        cmdMap.put("verack", VERACK_CMD);
-        cmdMap.put("version", VERSION_CMD);
+        cmdMap.put("addr", MessageCommand.ADDR);
+        cmdMap.put("alert", MessageCommand.ALERT);
+        cmdMap.put("block", MessageCommand.BLOCK);
+        cmdMap.put("filteradd", MessageCommand.FILTERADD);
+        cmdMap.put("filterclear", MessageCommand.FILTERCLEAR);
+        cmdMap.put("filterload", MessageCommand.FILTERLOAD);
+        cmdMap.put("getaddr", MessageCommand.GETADDR);
+        cmdMap.put("getblocks", MessageCommand.GETBLOCKS);
+        cmdMap.put("getdata", MessageCommand.GETDATA);
+        cmdMap.put("getheaders", MessageCommand.GETHEADERS);
+        cmdMap.put("headers", MessageCommand.HEADERS);
+        cmdMap.put("inv", MessageCommand.INV);
+        cmdMap.put("mempool", MessageCommand.MEMPOOL);
+        cmdMap.put("merkleblock", MessageCommand.MERKLEBLOCK);
+        cmdMap.put("notfound", MessageCommand.NOTFOUND);
+        cmdMap.put("ping", MessageCommand.PING);
+        cmdMap.put("pong", MessageCommand.PONG);
+        cmdMap.put("reject", MessageCommand.REJECT);
+        cmdMap.put("tx", MessageCommand.TX);
+        cmdMap.put("verack", MessageCommand.VERACK);
+        cmdMap.put("version", MessageCommand.VERSION);
     }
 
     /**
@@ -152,7 +154,7 @@ public class MessageHeader {
      * @throws      EOFException            End-of-data processing stream
      * @throws      VerificationException   Message verification failed
      */
-    public static String processMessage(SerializedBuffer msgBuffer)
+    public static MessageCommand processMessage(SerializedBuffer msgBuffer)
                                             throws EOFException, VerificationException {
         //
         // Get the message bytes
@@ -189,6 +191,13 @@ public class MessageHeader {
                 break;
             cmdString.appendCodePoint(((int)msgBytes[i])&0xff);
         }
-        return cmdString.toString();
+        String cmd = cmdString.toString();
+        //
+        // Get the message command
+        //
+        MessageCommand cmdOp = cmdMap.get(cmd);
+        if (cmdOp == null)
+            throw new VerificationException(String.format("Message '%s' is not supported", cmd));
+        return cmdOp;
     }
 }

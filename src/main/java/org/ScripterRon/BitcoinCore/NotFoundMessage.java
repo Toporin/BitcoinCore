@@ -52,7 +52,7 @@ public class NotFoundMessage {
         // Build the message
         //
         ByteBuffer buffer = MessageHeader.buildMessage("notfound", msgBuffer);
-        return new Message(buffer, peer, MessageHeader.NOTFOUND_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.NOTFOUND);
     }
 
     /**

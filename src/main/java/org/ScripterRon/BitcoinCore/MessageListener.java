@@ -25,9 +25,9 @@ public interface MessageListener {
     /**
      * Handle an inventory request
      *
-     * This method is called when a 'getdata' message is received.  The application
+     * <p>This method is called when a 'getdata' message is received.  The application
      * should send the inventory items to the requesting peer.  A 'notfound' message
-     * should be returned to the requesting peer if one or more items cannot be sent.
+     * should be returned to the requesting peer if one or more items cannot be sent.</p>
      *
      * @param       peer            Peer requesting the inventory item
      * @param       invList         Inventory item list
@@ -37,8 +37,8 @@ public interface MessageListener {
     /**
      * Handle an inventory item available notification
      *
-     * This method is called when an 'inv' message is received.  The application
-     * should request any needed inventory items from the peer.
+     * <p>This method is called when an 'inv' message is received.  The application
+     * should request any needed inventory items from the peer.</p>
      *
      * @param       peer            Peer announcing inventory item
      * @param       invList         Inventory item list
@@ -48,10 +48,10 @@ public interface MessageListener {
     /**
      * Handle a request not found
      *
-     * This method is called when a 'notfound' message is received.  It notifies the
+     * <p>This method is called when a 'notfound' message is received.  It notifies the
      * application that an inventory request cannot be completed because the item was
      * not found.  The request can be discarded or retried by sending it to a different
-     * peer.
+     * peer.</p>
      *
      * @param       peer            Peer sending the response
      * @param       invList         Inventory item list
@@ -61,8 +61,8 @@ public interface MessageListener {
     /**
      * Handle a request for the transaction memory pool
      *
-     * This method is called when a 'mempool' message is received.  The application
-     * should return an 'inv' message listing the transactions in the memory pool.
+     * <p>This method is called when a 'mempool' message is received.  The application
+     * should return an 'inv' message listing the transactions in the memory pool.</p>
      *
      * @param       peer            Peer sending the request
      */
@@ -71,8 +71,8 @@ public interface MessageListener {
     /**
      * Process a peer address list
      *
-     * This method is called when an 'addr' message is received.  The address list
-     * contains peers that have been active recently.
+     * <p>This method is called when an 'addr' message is received.  The address list
+     * contains peers that have been active recently.</p>
      *
      * @param       peer            Peer sending the address list
      * @param       addresses       Peer address list
@@ -82,7 +82,7 @@ public interface MessageListener {
     /**
      * Process an alert
      *
-     * This method is called when an 'alert' message is received
+     * <p>This method is called when an 'alert' message is received.</p>
      *
      * @param       peer            Peer sending the alert message
      * @param       alert           Alert
@@ -92,7 +92,7 @@ public interface MessageListener {
     /**
      * Process a block
      *
-     * This method is called when a 'block' message is received
+     * <p>This method is called when a 'block' message is received.</p>
      *
      * @param       peer            Peer sending the block
      * @param       block           Block
@@ -102,7 +102,7 @@ public interface MessageListener {
     /**
      * Process a block header
      *
-     * This method is called when a 'headers' message is received
+     * <p>This method is called when a 'headers' message is received.</p>
      *
      * @param       peer            Peer sending the headers
      * @param       hdrList         Block header list
@@ -112,8 +112,8 @@ public interface MessageListener {
     /**
      * Process a Bloom filter clear request
      *
-     * This method is called when a 'filterclear' message is received.  The peer
-     * Bloom filter has been cleared before this method is called.
+     * <p>This method is called when a 'filterclear' message is received.  The peer
+     * Bloom filter has been cleared before this method is called.</p>
      *
      * @param       peer            Peer sending the message
      * @param       oldFilter       Previous bloom filter
@@ -123,8 +123,8 @@ public interface MessageListener {
     /**
      * Process a Bloom filter load request
      *
-     * This method is called when a 'filterload' message is received.  The peer Bloom
-     * filter has been updated before this method is called.
+     * <p>This method is called when a 'filterload' message is received.  The peer Bloom
+     * filter has been updated before this method is called.</p>
      *
      * @param       peer            Peer sending the message
      * @param       oldFilter       Previous bloom filter
@@ -135,8 +135,8 @@ public interface MessageListener {
     /**
      * Process a get address request
      *
-     * This method is called when a 'getaddr' message is received.  The application should
-     * call AddressMessage.buildAddressMessage() to build the response message.
+     * <p>This method is called when a 'getaddr' message is received.  The application should
+     * call AddressMessage.buildAddressMessage() to build the response message.</p>
      *
      * @param       peer            Peer sending the message
      */
@@ -145,9 +145,9 @@ public interface MessageListener {
     /**
      * Process a request for the latest blocks
      *
-     * This method is called when a 'getblocks' message is received.  The application should
+     * <p>This method is called when a 'getblocks' message is received.  The application should
      * use the locator block list to find the latest common block and then send an 'inv'
-     * message to the peer for the blocks following the common block.
+     * message to the peer for the blocks following the common block.</p>
      *
      * @param       peer            Peer sending the message
      * @param       version         Negotiated version
@@ -159,9 +159,9 @@ public interface MessageListener {
     /**
      * Process a request for the latest headers
      *
-     * This method is called when a 'getheaders' message is received.  The application should
+     * <p>This method is called when a 'getheaders' message is received.  The application should
      * use the locator block list to find the latest common block and then send a 'headers'
-     * message to the peer for the blocks following the common block.
+     * message to the peer for the blocks following the common block.</p>
      *
      * @param       peer            Peer sending the message
      * @param       version         Negotiated version
@@ -173,7 +173,7 @@ public interface MessageListener {
     /**
      * Process a Merkle block
      *
-     * This method is called when a 'merkleblock' message is received
+     * <p>This method is called when a 'merkleblock' message is received.</p>
      *
      * @param       peer            Peer sending the Merkle block
      * @param       blkHeader       Merkle block header
@@ -183,8 +183,8 @@ public interface MessageListener {
     /**
      * Process a ping
      *
-     * This method is called when a 'ping' message is received.  The application should
-     * return a 'pong' message to the sender.
+     * <p>This method is called when a 'ping' message is received.  The application should
+     * return a 'pong' message to the sender.</p>
      *
      * @param       peer            Peer sending the ping
      * @param       nonce           Nonce
@@ -194,7 +194,7 @@ public interface MessageListener {
     /**
      * Process a pong
      *
-     * This method is called when a 'pong' message is received.
+     * <p>This method is called when a 'pong' message is received.</p>
      *
      * @param       peer            Peer sending the pong
      * @param       nonce           Nonce
@@ -204,7 +204,7 @@ public interface MessageListener {
     /**
      * Process a message rejection
      *
-     * This method is called when a 'reject' message is received
+     * <p>This method is called when a 'reject' message is received.</p>
      *
      * @param       peer            Peer sending the message
      * @param       cmd             Failing message command
@@ -217,7 +217,7 @@ public interface MessageListener {
     /**
      * Process a transaction
      *
-     * This method is called when a 'tx' message is received
+     * <p>This method is called when a 'tx' message is received.</p>
      *
      * @param       peer            Peer sending the transaction
      * @param       tx              Transaction
@@ -227,8 +227,8 @@ public interface MessageListener {
     /**
      * Process a version message
      *
-     * This method is called when a 'version' message is received.  The application
-     * should return a 'verack' message to the sender if the connection is accepted.
+     * <p>This method is called when a 'version' message is received.  The application
+     * should return a 'verack' message to the sender if the connection is accepted.</p>
      *
      * @param       peer            Peer sending the message
      * @param       localAddress    Local address as seen by the peer
@@ -238,7 +238,7 @@ public interface MessageListener {
     /**
      * Process a version acknowledgment
      *
-     * This method is called when a 'verack' message is received
+     * <p>This method is called when a 'verack' message is received.</p>
      *
      * @param       peer            Peer sending the message
      */

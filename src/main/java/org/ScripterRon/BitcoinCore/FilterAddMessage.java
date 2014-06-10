@@ -45,7 +45,7 @@ public class FilterAddMessage {
         outBuffer.putVarInt(elem.length)
                  .putBytes(elem);
         ByteBuffer buffer = MessageHeader.buildMessage("filteradd", outBuffer);
-        return new Message(buffer, peer, MessageHeader.FILTERADD_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.FILTERADD);
     }
 
     /**

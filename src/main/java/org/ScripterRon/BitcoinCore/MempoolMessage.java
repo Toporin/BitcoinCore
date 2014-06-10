@@ -33,7 +33,7 @@ public class MempoolMessage {
      */
     public static Message buildMempoolMessage(Peer peer) {
         ByteBuffer buffer = MessageHeader.buildMessage("mempool", new byte[0]);
-        return new Message(buffer, peer, MessageHeader.MEMPOOL_CMD);
+        return new Message(buffer, peer, MessageHeader.MessageCommand.MEMPOOL);
     }
 
     /**
