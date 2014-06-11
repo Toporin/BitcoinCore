@@ -113,4 +113,26 @@ public class InventoryItem implements ByteSerializable {
     public Sha256Hash getHash() {
         return hash;
     }
+
+    /**
+     * Return the inventory item hash code
+     *
+     * @return                          Hash code
+     */
+    @Override
+    public int hashCode() {
+        return hash.hashCode();
+    }
+
+    /**
+     * Check if an inventory item equals this item
+     *
+     * @param       obj                 Object to check
+     * @return                          TRUE if the items are equal
+     */
+    @Override
+    public boolean equals(Object obj) {
+        return (obj!=null && (obj instanceof InventoryItem) && hash.equals(((InventoryItem)obj).hash) &&
+                                        type==((InventoryItem)obj).type);
+    }
 }

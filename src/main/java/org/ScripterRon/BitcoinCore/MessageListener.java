@@ -184,7 +184,8 @@ public interface MessageListener {
      * Process a ping
      *
      * <p>This method is called when a 'ping' message is received.  The application should
-     * return a 'pong' message to the sender.</p>
+     * return a 'pong' message to the sender.  This method will not be called if the sender
+     * has not implemented BIP0031.</p>
      *
      * @param       msg             Message
      * @param       nonce           Nonce

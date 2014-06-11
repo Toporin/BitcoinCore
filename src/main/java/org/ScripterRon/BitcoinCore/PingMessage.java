@@ -60,12 +60,19 @@ public class PingMessage {
     public static void processPingMessage(Message msg, SerializedBuffer inBuffer, MessageListener msgListener)
                                         throws EOFException {
         //
-        // Get the nonce from the 'ping' message
+        // BIP0031 adds the 'pong' message and requires an 8-byte nonce in the 'ping'
+        // message.  If we receive a 'ping' without a payload, we do not return a
+        // 'pong' since the client has not implemented BIP0031.
         //
-        long nonce = inBuffer.getLong();
-        //
-        // Notify the message listener
-        //
-        msgListener.processPing(msg, nonce);
+        if (inBuffer.available() >= 8) {
+            //
+            // Get the nonce from the 'ping' message
+            //
+            long nonce = inBuffer.getLong();
+            //
+            // Notify the message listener
+            //
+            msgListener.processPing(msg, nonce);
+        }
     }
 }

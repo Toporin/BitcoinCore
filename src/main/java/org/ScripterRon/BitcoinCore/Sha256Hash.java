@@ -101,11 +101,7 @@ public class Sha256Hash {
      */
     @Override
     public boolean equals(Object other) {
-        boolean areEqual = false;
-        if (other!=null && (other instanceof Sha256Hash))
-            areEqual = Arrays.equals(bytes, ((Sha256Hash)other).bytes);
-
-        return areEqual;
+        return (other!=null && (other instanceof Sha256Hash) && Arrays.equals(bytes, ((Sha256Hash)other).bytes));
     }
 
     /**
