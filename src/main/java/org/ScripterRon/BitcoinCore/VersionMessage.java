@@ -84,7 +84,8 @@ public class VersionMessage {
             msgBuffer.putBytes(PeerAddress.IPV6_PREFIX);
             msgBuffer.putBytes(dstAddress);
         }
-        msgBuffer.putUnsignedShort(peerAddress.getPort());
+        msgBuffer.putUnsignedByte(peerAddress.getPort()>>>8)
+                 .putUnsignedByte(peerAddress.getPort());
         //
         // Set the source address
         //
@@ -97,7 +98,8 @@ public class VersionMessage {
                 msgBuffer.putBytes(PeerAddress.IPV6_PREFIX)
                          .putBytes(srcAddress);
             }
-            msgBuffer.putUnsignedShort(localAddress.getPort());
+            msgBuffer.putUnsignedByte(localAddress.getPort()>>>8)
+                     .putUnsignedByte(localAddress.getPort());
         } else {
             msgBuffer.skip(16+2);
         }
@@ -169,7 +171,7 @@ public class VersionMessage {
         } catch (UnknownHostException exc) {
             throw new VerificationException("Destination address is not valid: "+exc.getMessage());
         }
-        PeerAddress localAddress = new PeerAddress(addr, inBuffer.getUnsignedShort());
+        PeerAddress localAddress = new PeerAddress(addr, (inBuffer.getUnsignedByte()<<8)|inBuffer.getUnsignedByte());
         //
         // Get the user agent
         //
@@ -177,10 +179,12 @@ public class VersionMessage {
         peer.setUserAgent(inBuffer.getString());
         //
         // Get the chain height and transaction relay flag (the transaction relay flag is
-        // not included in earlier protocol versions)
+        // not included in earlier protocol versions and defaults to TRUE).  Always relay
+        // block notifications.
         //
         peer.setHeight(inBuffer.getInt());
-        peer.setTxRelay(inBuffer.available()>0 && inBuffer.getByte()!=0);
+        peer.setTxRelay(inBuffer.available()==0 || inBuffer.getByte()!=0);
+        peer.setBlockRelay(true);
         //
         // Notify the message listener
         //
