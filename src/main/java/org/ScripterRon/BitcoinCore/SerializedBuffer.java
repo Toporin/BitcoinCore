@@ -588,6 +588,7 @@ public class SerializedBuffer {
         int increment = Math.max(minLength, incrementSize);
         if (bufferLimit-bufferStart == bytes.length) {
             bytes = Arrays.copyOf(bytes, bytes.length+increment);
+            bufferLimit += increment;
         } else {
             byte[] newBytes = new byte[bufferLimit-bufferStart+increment];
             System.arraycopy(bytes, bufferStart, newBytes, 0, bufferLimit-bufferStart);
