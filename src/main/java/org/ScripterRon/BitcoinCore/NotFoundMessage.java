@@ -69,7 +69,7 @@ public class NotFoundMessage {
         //
         // Build the inventory item list
         //
-        int count = inBuffer.getInt();
+        int count = inBuffer.getVarInt();
         if (count < 0 || count > 1000)
             throw new VerificationException("More than 1000 entries in 'notfound' message");
         List<InventoryItem> itemList = new ArrayList<>(count);
