@@ -35,6 +35,9 @@ public class Message {
     /** The message command */
     private MessageHeader.MessageCommand command;
 
+    /** Inventory message type */
+    private int invType;
+
     /** Deferred restart index */
     private int restartIndex;
 
@@ -145,6 +148,24 @@ public class Message {
      */
     public void setRestartIndex(int restartIndex) {
         this.restartIndex = restartIndex;
+    }
+
+    /**
+     * Return the inventory type
+     *
+     * @return                      Inventory type
+     */
+    public int getInventoryType() {
+        return invType;
+    }
+
+    /**
+     * Set the inventory type
+     *
+     * @param       invType         Inventory type
+     */
+    public void setInventoryType(int invType) {
+        this.invType = invType;
     }
 
     /**

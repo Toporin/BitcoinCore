@@ -184,7 +184,8 @@ public class MerkleBranch implements ByteSerializable {
     public SerializedBuffer getBytes(SerializedBuffer outBuffer) {
         outBuffer.putInt(txCount)
                  .putVarInt(nodeHashes.size());
-        nodeHashes.stream().forEach((hash) -> outBuffer.putBytes(hash));
+        for (byte[] hash : nodeHashes)
+            outBuffer.putBytes(Utils.reverseBytes(hash));
         outBuffer.putVarInt(nodeFlags.length)
                  .putBytes(nodeFlags);
         return outBuffer;

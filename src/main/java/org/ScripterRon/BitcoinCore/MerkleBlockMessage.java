@@ -62,7 +62,7 @@ public class MerkleBlockMessage {
         //
         // Create the message data
         //
-        SerializedBuffer msgBuffer = new SerializedBuffer(BlockHeader.HEADER_SIZE+txList.size()*32);
+        SerializedBuffer msgBuffer = new SerializedBuffer(BlockHeader.HEADER_SIZE+txList.size()*32+12);
         block.getHeaderBytes(msgBuffer);
         branch.getBytes(msgBuffer);
         //
@@ -93,7 +93,8 @@ public class MerkleBlockMessage {
         List<Sha256Hash> matches = new LinkedList<>();
         Sha256Hash merkleRoot = merkleBranch.calculateMerkleRoot(matches);
         if (!merkleRoot.equals(blockHeader.getMerkleRoot()))
-            throw new VerificationException("Merkle root is incorrect", RejectMessage.REJECT_INVALID);
+            throw new VerificationException("Merkle root is incorrect", RejectMessage.REJECT_INVALID,
+                                            blockHeader.getHash());
         blockHeader.setMatches(matches);
         //
         // Notify the message listener that a block is ready for processing
