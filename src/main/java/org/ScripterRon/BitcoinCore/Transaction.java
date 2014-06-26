@@ -206,15 +206,6 @@ public class Transaction implements ByteSerializable {
         //
         txHash = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(txData)));
         //
-        // Transaction must have at least one input and one output
-        //
-        if (inCount == 0)
-            throw new VerificationException("Transaction has no inputs",
-                                            RejectMessage.REJECT_INVALID, txHash);
-        if (outCount == 0)
-            throw new VerificationException("Transaction has no outputs",
-                                            RejectMessage.REJECT_INVALID, txHash);
-        //
         // Calculate the normalized transaction ID
         //
         List<byte[]> bufferList = new ArrayList<>(txInputs.size()+txOutputs.size());
