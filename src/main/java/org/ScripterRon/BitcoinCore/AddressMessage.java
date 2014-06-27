@@ -46,9 +46,7 @@ public class AddressMessage {
     /**
      * Build an 'addr' message
      *
-     * We will include all peers that we have seen within the past 15 minutes as well as
-     * our own external listen address.  A maximum of 250 addresses will be included in
-     * the address message.
+     * We will include the first 250 peers as well as our own external listen address
      *
      * @param       peer                The destination peer or null for a broadcast message
      * @param       addressList         Peer address list
@@ -57,22 +55,19 @@ public class AddressMessage {
      */
     public static Message buildAddressMessage(Peer peer, List<PeerAddress> addressList, PeerAddress localAddress) {
         //
-        // Create an address list containing peers that we have seen within the past 15 minutes.
-        // The maximum length of the list is 250 entries.  Static addresses are not included
-        // in the list.  We will include our own address with a current timestamp if it is available.
+        // Create an address list containing the first 250 peers plus our own local address.
+        // Static addresses are not included in the list nor are peers that provide no services.
         //
-        long currentTime = System.currentTimeMillis()/1000;
-        long oldestTime = currentTime - (15*60);
         List<PeerAddress> addresses = new ArrayList<>(250);
         if (localAddress != null) {
-            PeerAddress addr = new PeerAddress(localAddress.getAddress(), localAddress.getPort(), currentTime);
+            PeerAddress addr = new PeerAddress(localAddress.getAddress(), localAddress.getPort());
             addr.setServices(NetParams.SUPPORTED_SERVICES);
             addresses.add(addr);
         }
         for (PeerAddress address : addressList) {
             if (addresses.size() >= 250)
                 break;
-            if (address.getTimeStamp() >= oldestTime && !address.isStatic())
+            if (!address.isStatic() && address.getServices() != 0)
                 addresses.add(address);
         }
         //
@@ -92,9 +87,7 @@ public class AddressMessage {
     /**
      * Process an 'addr' message
      *
-     * Addresses that were seen within the previous 15 minutes will be included in the address
-     * list.  The processAddresses() inventory handler will then be notified that new addresses
-     * have been received.
+     * Build the address list and then notify the processAddress() message listener.
      *
      * @param       msg                     Message
      * @param       inBuffer                Message buffer
@@ -111,16 +104,11 @@ public class AddressMessage {
         if (addrCount < 0 || addrCount > 1000)
             throw new VerificationException("More than 1000 addresses in 'addr' message");
         //
-        // Build the address list.  We will not include addresses that were not seen within
-        // the previous 15 minutes.
+        // Build the address list
         //
-        long oldestTime = System.currentTimeMillis()/1000 - (15*60);
         List<PeerAddress> addresses = new ArrayList<>(addrCount);
-        for (int i=0; i<addrCount; i++) {
-            PeerAddress address = new PeerAddress(inBuffer);
-            if (address.getTimeStamp() > oldestTime)
-                addresses.add(address);
-        }
+        for (int i=0; i<addrCount; i++)
+            addresses.add(new PeerAddress(inBuffer));
         //
         // Notify the application message listener
         //
