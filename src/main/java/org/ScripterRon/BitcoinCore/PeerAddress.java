@@ -60,6 +60,9 @@ public class PeerAddress implements ByteSerializable {
     /** Static address */
     private boolean staticAddress;
 
+    /** Address has been broadcast */
+    private boolean wasBroadcast;
+
     /**
      * Constructs a peer address from the given IP address and port
      *
@@ -226,7 +229,7 @@ public class PeerAddress implements ByteSerializable {
     /**
      * Returns the timestamp for this peer
      *
-     * @return      Timestamp in seconds since the epoch
+     * @return                          Timestamp in seconds since the epoch
      */
     public long getTimeStamp() {
         return timeSeen;
@@ -235,10 +238,28 @@ public class PeerAddress implements ByteSerializable {
     /**
      * Sets the timestamp for this peer
      *
-     * @param       timeSeen        Time peer was seen in seconds since the epoch
+     * @param       timeSeen            Time peer was seen in seconds since the epoch
      */
     public void setTimeStamp(long timeSeen) {
         this.timeSeen = timeSeen;
+    }
+
+    /**
+     * Check if address has been broadcast
+     *
+     * @return                          True if address has been broadcast
+     */
+    public boolean wasBroadcast() {
+        return wasBroadcast;
+    }
+
+    /**
+     * Set address broadcast status
+     *
+     * @param       wasBroadcast        True if the address has been broadcast
+     */
+    public void setBroadcast(boolean wasBroadcast) {
+        this.wasBroadcast = wasBroadcast;
     }
 
     /**
