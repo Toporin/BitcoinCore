@@ -478,7 +478,7 @@ public class ScriptParser {
                             bytes[0] = (byte)1;
                         elemStack.add(new StackElement(bytes));
                         if (opcode == ScriptOpCodes.OP_EQUAL) {
-                            if (p2sh && bytes[0] == 1) {
+                            if (p2sh && scriptStack.size()>1 && bytes[0]==1) {
                                 // Remove TRUE from the stack so that we are left with just the remaining
                                 // data elements from the input script (OP_EQUAL is the last opcode
                                 // in the output script)
@@ -505,7 +505,7 @@ public class ScriptParser {
                         elem = popStack(elemStack);
                         elemStack.add(new StackElement(Utils.sha256Hash160(elem.getBytes())));
                         // Save the deserialized script for pay-to-hash-script processing
-                        if (p2sh)
+                        if (p2sh && elem.getBytes().length>0)
                             scriptStack.add(elem.getBytes());
                         break;
                     case ScriptOpCodes.OP_HASH256:
