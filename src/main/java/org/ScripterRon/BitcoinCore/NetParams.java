@@ -168,7 +168,7 @@ public class NetParams {
         // Set the application properties
         //
         APPLICATION_NAME = applicationName;
-        MIN_PROTOCOL_VERSION = minProtocolVersion;
+        MIN_PROTOCOL_VERSION = Math.max(MIN_PROTOCOL_VERSION, minProtocolVersion);
         SUPPORTED_SERVICES = supportedServices;
     }
 }
