@@ -33,6 +33,9 @@ import java.util.List;
  */
 public class ScriptParser {
 
+    /** Verbose debug flag */
+    private static final boolean verboseDebug = false;
+
     /**
      * Processes a transaction script to determine if the spending transaction
      * is authorized to spend the output coins
@@ -57,6 +60,8 @@ public class ScriptParser {
         byte[] outputScriptBytes = txOutput.getScriptBytes();
         if (outputScriptBytes.length != 0)
             scriptStack.add(outputScriptBytes);
+        if (verboseDebug)
+            System.out.printf("Processing scripts for transaction %s\n", tx.getHashAsString());
         //
         // The result is FALSE if there are no scripts to process since an empty stack
         // is the same as FALSE
@@ -143,10 +148,13 @@ public class ScriptParser {
                                         List<StackElement> elemStack, List<StackElement> altStack,
                                         boolean p2sh) throws EOFException, ScriptException {
         boolean txValid = true;
+        boolean skipping = false;
         byte[] scriptBytes = scriptStack.get(0);
         int offset = 0;
         int lastSeparator = 0;
         Deque<Boolean> ifStack = new ArrayDeque<>();
+        if (verboseDebug)
+            System.out.println("Processing script segment");
         //
         // Process the script opcodes
         //
@@ -156,38 +164,54 @@ public class ScriptParser {
             byte[] bytes;
             int dataToRead, size, index;
             int opcode = (int)scriptBytes[offset++]&0xff;
-            if (opcode == ScriptOpCodes.OP_IF) {
-                // IF clause processed if top stack element is true
-                ifStack.push(popStack(elemStack).isTrue());
-            } else if (opcode == ScriptOpCodes.OP_NOTIF) {
-                // IF clause process if top stack element is false
-                ifStack.push(!popStack(elemStack).isTrue());
-            } else if (opcode == ScriptOpCodes.OP_ENDIF) {
-                // IF processing completed
-                if (ifStack.isEmpty())
-                    throw new ScriptException("OP_ENDIF without matching OP_IF");
-                ifStack.pop();
-            } else if (opcode == ScriptOpCodes.OP_ELSE) {
-                if (ifStack.isEmpty())
-                    throw new ScriptException("OP_ELSE without matching OP_IF");
-                boolean skipping = ifStack.pop();
-                ifStack.push(!skipping);
-            } else if (opcode <= ScriptOpCodes.OP_PUSHDATA4) {
+            if (verboseDebug)
+                System.out.printf("Processing OpCode %02X\n", opcode);
+            skipping = !ifStack.isEmpty() && !ifStack.peek();
+            if (opcode <= ScriptOpCodes.OP_PUSHDATA4) {
                 // Data push opcodes
                 int[] result = Script.getDataLength(opcode, scriptBytes, offset);
                 dataToRead = result[0];
                 offset = result[1];
                 if (offset+dataToRead > scriptBytes.length)
                     throw new EOFException("End-of-data while processing script");
-                if (ifStack.isEmpty() || ifStack.peek()) {
+                if (!skipping) {
                     bytes = new byte[dataToRead];
                     if (dataToRead > 0)
                         System.arraycopy(scriptBytes, offset, bytes, 0, dataToRead);
                     elemStack.add(new StackElement(bytes));
                 }
                 offset += dataToRead;
-            } else if (!ifStack.isEmpty() && !ifStack.peek()) {
+            } else if (opcode == ScriptOpCodes.OP_IF) {
+                // IF clause processed if top stack element is true
+                ifStack.push(skipping ? false : popStack(elemStack).isTrue());
+                if (verboseDebug)
+                    System.out.printf("OP_IF(%d) status %s\n", ifStack.size(), ifStack.peek());
+            } else if (opcode == ScriptOpCodes.OP_NOTIF) {
+                // IF clause process if top stack element is false
+                ifStack.push(skipping ? false : !popStack(elemStack).isTrue());
+                if (verboseDebug)
+                    System.out.printf("OP_NOTIF(%d) status %s\n", ifStack.size(), ifStack.peek());
+            } else if (opcode == ScriptOpCodes.OP_ENDIF) {
+                // IF processing completed
+                if (ifStack.isEmpty())
+                    throw new ScriptException("OP_ENDIF without matching OP_IF");
+                if (verboseDebug)
+                    System.out.printf("IF(%d) ended\n", ifStack.size());
+                ifStack.pop();
+            } else if (opcode == ScriptOpCodes.OP_ELSE) {
+                if (ifStack.isEmpty())
+                    throw new ScriptException("OP_ELSE without matching OP_IF");
+                ifStack.pop();
+                if (ifStack.isEmpty() || ifStack.peek())
+                    ifStack.push(skipping);
+                else
+                    ifStack.push(false);
+                if (verboseDebug)
+                    System.out.printf("OP_ELSE status %s\n", ifStack.peek());
+            } else if (skipping) {
                 // We are skipping, so don't execute opcodes
+                if (verboseDebug)
+                    System.out.println("Skipping OpCode");
             } else if (opcode >= ScriptOpCodes.OP_1 && opcode <= ScriptOpCodes.OP_16) {
                 // Push 1 to 16 onto the stack based on the opcode (0x51-0x60)
                 bytes = new byte[1];
