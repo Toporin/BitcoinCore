@@ -159,8 +159,16 @@ public class MerkleBranch implements ByteSerializable {
         // case, we will create a Merkle branch with the Merkle root as the only
         // nodeHashes element and no matches will be set in nodeFlags.
         //
+        // We have another special case if the block contains just the coinbase transaction
+        // and this is also the matched transaction.  In this case, we will create
+        // a Merkle branch with the coinbase transaction set in nodeFlags.  Note that
+        // the merkle root is the same as the coinbase transaction hash in this case.
+        //
         if (txList.isEmpty()) {
             bitsUsed++;
+            nodeHashes.add(merkleTree.get(merkleTree.size()-1));
+        } else if (txCount == 1) {
+            Utils.setBitLE(nodeFlags, bitsUsed++);
             nodeHashes.add(merkleTree.get(merkleTree.size()-1));
         } else {
             Utils.setBitLE(nodeFlags, bitsUsed++);

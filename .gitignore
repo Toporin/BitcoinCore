@@ -3,7 +3,6 @@ target/
 package/
 
 # Package Files #
-dependency-reduced-pom.xml
 *.jar
 *.war
 *.ear
