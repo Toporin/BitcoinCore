@@ -792,7 +792,7 @@ public class ScriptParser {
                                         byte[] subProgram)  throws ScriptException {
         byte[] sigBytes = sig.getBytes();
         boolean isValid = false;
-        if (sigBytes.length < 10)
+        if (sigBytes.length < 9)
             throw new ScriptException("Signature is too short");
         //
         // The hash type is the last byte of the signature.  Remove it and create a new
