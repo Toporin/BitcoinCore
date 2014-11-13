@@ -111,6 +111,17 @@ public class ECKey {
     public ECKey(byte[] pubKey) {
         this(pubKey, null, false);
     }
+    
+    /**
+     * Creates an ECKey public/private key pair using the supplied private key.  The
+     * 'compressed' parameter determines the type of public key created.
+     * 
+     * @param       privKey             Private key
+     * @param       compressed          TRUE to create a compressed public key
+     */
+    public ECKey(BigInteger privKey, boolean compressed) {
+        this(null, privKey, compressed);
+    }
 
     /**
      * Creates an ECKey with the supplied public/private key pair.  The private key may be

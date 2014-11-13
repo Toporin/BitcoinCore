@@ -76,7 +76,7 @@ public class DumpedPrivateKey {
      * @return      ECKey
      */
     public ECKey getKey() {
-        return new ECKey(null, new BigInteger(1, privKeyBytes), isCompressed);
+        return new ECKey(new BigInteger(1, privKeyBytes), isCompressed);
     }
 
     /**
