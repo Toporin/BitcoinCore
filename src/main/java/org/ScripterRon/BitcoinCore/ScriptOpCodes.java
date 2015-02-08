@@ -24,9 +24,6 @@ import java.util.Map;
  */
 public class ScriptOpCodes {
 
-    /** Maximum number of signature operations allowed */
-    public static final int MAX_SIG_OPS = 20;
-
     /** Standard signature types */
     public static final int PAY_TO_PUBKEY_HASH = 1;
     public static final int PAY_TO_PUBKEY = 2;

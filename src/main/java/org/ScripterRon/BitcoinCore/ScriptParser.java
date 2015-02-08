@@ -714,8 +714,8 @@ public class ScriptParser {
     private static void processMultiSig(TransactionInput txInput, List<StackElement> elemStack,
                                         byte[] scriptBytes, int lastSeparator)
                                         throws ScriptException {
-        List<StackElement> keys = new ArrayList<>(ScriptOpCodes.MAX_SIG_OPS);
-        List<StackElement> sigs = new ArrayList<>(ScriptOpCodes.MAX_SIG_OPS);
+        List<StackElement> keys = new ArrayList<>(20);
+        List<StackElement> sigs = new ArrayList<>(20);
         boolean isValid = true;
         StackElement elem;
         byte[] bytes;
@@ -728,8 +728,6 @@ public class ScriptParser {
         // as the signature is verified using one of the valid keys.
         //
         int pubKeyCount = popStack(elemStack).getBigInteger().intValue();
-        if (pubKeyCount > ScriptOpCodes.MAX_SIG_OPS)
-            throw new ScriptException("Too many public keys for OP_CHECKMULTISIG");
         for (int i=0; i<pubKeyCount; i++) {
             elem = popStack(elemStack);
             bytes = elem.getBytes();
@@ -740,8 +738,6 @@ public class ScriptParser {
         // Get the signatures
         //
         int sigCount = popStack(elemStack).getBigInteger().intValue();
-        if (sigCount > ScriptOpCodes.MAX_SIG_OPS)
-            throw new ScriptException("Too many signatures for OP_CHECKMULTISIG");
         for (int i=0; i<sigCount; i++)
             sigs.add(popStack(elemStack));
         //

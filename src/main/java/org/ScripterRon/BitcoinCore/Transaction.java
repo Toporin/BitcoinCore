@@ -369,7 +369,6 @@ public class Transaction implements ByteSerializable {
      * <li>A transaction must have at least one input and one output</li>
      * <li>A transaction output may not specify a negative number of coins</li>
      * <li>The sum of all of the output amounts must not exceed 21,000,000 BTC</li>
-     * <li>The number of sigops in an output script must not exceed MAX_SIG_OPS</li>
      * <li>A non-coinbase transaction may not contain any unconnected inputs</li>
      * <li>A connected output may not be used by more than one input</li>
      * <li>The input script must contain only push-data operations</li>
@@ -386,7 +385,6 @@ public class Transaction implements ByteSerializable {
                                                 RejectMessage.REJECT_INVALID, txHash);
             // No output value may be negative
             // Sum of all output values must not exceed MAX_MONEY
-            // The number of sigops in an output script may not exceed MAX_SIG_OPS
             BigInteger outTotal = BigInteger.ZERO;
             for (TransactionOutput txOut : txOutputs) {
                 BigInteger outValue = txOut.getValue();
@@ -398,9 +396,6 @@ public class Transaction implements ByteSerializable {
                     throw new VerificationException("Total transaction output amount exceeds maximum",
                                                     RejectMessage.REJECT_INVALID, txHash);
                 byte[] scriptBytes = txOut.getScriptBytes();
-                if (!Script.countSigOps(scriptBytes))
-                    throw new VerificationException("Too many script signature operations",
-                                                    RejectMessage.REJECT_NONSTANDARD, txHash);
             }
             if (!coinBase) {
                 // All inputs must have connected outputs

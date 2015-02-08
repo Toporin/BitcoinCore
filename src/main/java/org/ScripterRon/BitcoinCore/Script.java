@@ -102,49 +102,6 @@ public class Script {
     }
 
     /**
-     * Count the number of signature operations in a script
-     *
-     * OP_CHECKSIG and OP_CHECKSIGVERIFY count as 1 signature operation
-     *
-     * OP_CHECKMULTISIG and OP_CHECKMULTISIGVERIFY count as n signature operations where
-     * n is the number of public keys preceding the opcode.
-     *
-     * @param       scriptBytes         Script bytes
-     * @return                          TRUE if the number of signature operations is acceptable
-     */
-    public static boolean countSigOps(byte[] scriptBytes) {
-        int sigCount = 0;
-        int offset = 0;
-        int length = scriptBytes.length;
-        try {
-            while (offset < length) {
-                int opcode = ((int)scriptBytes[offset++])&0xff;
-                if (opcode <= ScriptOpCodes.OP_PUSHDATA4) {
-                    int[] result = getDataLength(opcode, scriptBytes, offset);
-                    int dataLength = result[0];
-                    offset = result[1];
-                    offset += dataLength;
-                    if (offset > length)
-                        throw new EOFException("End-of-data while processing script");
-                } else if (opcode == ScriptOpCodes.OP_CHECKSIG || opcode == ScriptOpCodes.OP_CHECKSIGVERIFY) {
-                    // OP_CHECKSIG counts as 1 signature operation
-                    sigCount++;
-                } else if (opcode == ScriptOpCodes.OP_CHECKMULTISIG ||   opcode == ScriptOpCodes.OP_CHECKMULTISIGVERIFY) {
-                    // OP_CHECKMULTISIG counts as 1 signature operation for each pubkey
-                    if (offset > 1) {
-                        int keyCount = ((int)scriptBytes[offset-2])&0xff;
-                        if (keyCount>=81 && keyCount<=96)
-                            sigCount += keyCount-80;
-                    }
-                }
-            }
-        } catch (EOFException exc) {
-            // Invalid script - stop counting
-        }
-        return (sigCount<=ScriptOpCodes.MAX_SIG_OPS);
-    }
-
-    /**
      * Checks script data elements against a Bloom filter
      *
      * @param       filter              Bloom filter
