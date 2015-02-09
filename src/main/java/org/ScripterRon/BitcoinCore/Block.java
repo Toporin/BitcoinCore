@@ -411,7 +411,7 @@ public class Block implements ByteSerializable {
      */
     private void readHeader(SerializedBuffer inBuffer) throws EOFException, VerificationException {
         blockVersion = inBuffer.getInt();
-        if (blockVersion != 1 && blockVersion != 2)
+        if (blockVersion != 1 && blockVersion != 2 && blockVersion != 3)
             throw new VerificationException(String.format("Block version %d is not supported", blockVersion));
         prevBlockHash = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
         merkleRoot = new Sha256Hash(Utils.reverseBytes(inBuffer.getBytes(32)));
