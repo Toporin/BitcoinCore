@@ -3,6 +3,6 @@ BitcoinCore Change Log
 
 Version 2.1.1
 
-  - Remove transaction signature operation restriction
+  - Remove transaction signature count restriction
   - Support Version 3 blocks (transaction version is still 1)
 
