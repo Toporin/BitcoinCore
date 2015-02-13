@@ -46,7 +46,7 @@ public class AddressMessage {
     /**
      * Build an 'addr' message
      *
-     * We will include the first 250 peers as well as our own external listen address
+     * We will include the first 1000 peers as well as our own external listen address
      *
      * @param       peer                The destination peer or null for a broadcast message
      * @param       addressList         Peer address list
@@ -55,17 +55,17 @@ public class AddressMessage {
      */
     public static Message buildAddressMessage(Peer peer, List<PeerAddress> addressList, PeerAddress localAddress) {
         //
-        // Create an address list containing the first 250 peers plus our own local address.
+        // Create an address list containing the first 1000 peers plus our own local address.
         // Static addresses are not included in the list nor are peers that provide no services.
         //
-        List<PeerAddress> addresses = new ArrayList<>(250);
+        List<PeerAddress> addresses = new ArrayList<>(1000);
         if (localAddress != null) {
             PeerAddress addr = new PeerAddress(localAddress.getAddress(), localAddress.getPort());
             addr.setServices(NetParams.SUPPORTED_SERVICES);
             addresses.add(addr);
         }
         for (PeerAddress address : addressList) {
-            if (addresses.size() >= 250)
+            if (addresses.size() >= 1000)
                 break;
             if (!address.isStatic() && address.getServices() != 0)
                 addresses.add(address);

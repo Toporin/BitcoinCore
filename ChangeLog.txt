@@ -1,6 +1,10 @@
 BitcoinCore Change Log
 ======================
 
+Version 2.1.2
+  - Increase 'addr' message size to 1000 entries
+
+
 Version 2.1.1
 
   - Remove transaction signature count restriction
