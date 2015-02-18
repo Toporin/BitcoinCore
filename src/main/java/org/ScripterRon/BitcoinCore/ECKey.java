@@ -16,6 +16,12 @@
  */
 package org.ScripterRon.BitcoinCore;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.Arrays;
+
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.digests.SHA256Digest;
@@ -27,17 +33,11 @@ import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.crypto.signers.HMacDSAKCalculator;
-import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve;
 import org.bouncycastle.math.ec.ECAlgorithms;
 import org.bouncycastle.math.ec.ECFieldElement;
 import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.math.ec.custom.sec.SecP256K1Curve; // SatoChip
 import org.bouncycastle.util.encoders.Base64;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.Arrays;
 
 /**
  * ECKey supports elliptic curve cryptographic operations using a public/private
@@ -62,29 +62,29 @@ public class ECKey {
     private static final SecureRandom secureRandom = new SecureRandom();
 
     /** Signed message header */
-    private static final String BITCOIN_SIGNED_MESSAGE_HEADER = "Bitcoin Signed Message:\n";
+    protected static final String BITCOIN_SIGNED_MESSAGE_HEADER = "Bitcoin Signed Message:\n";
 
     /** Key label */
     private String label = "";
 
     /** Public key */
-    private byte[] pubKey;
+    protected byte[] pubKey;
 
     /** Public key hash */
-    private byte[] pubKeyHash;
+    protected byte[] pubKeyHash;
 
     /** Private key */
     private BigInteger privKey;
 
     /** Key creation time (seconds) */
-    private long creationTime;
+    protected long creationTime;
 
     /** Compressed public key */
-    private boolean isCompressed;
+    protected boolean isCompressed;
 
     /** Change key */
     private boolean isChange;
-
+           
     /**
      * Creates an ECKey with a new public/private key pair.  Point compression is used
      * so the resulting public key will be 33 bytes (32 bytes for the x-coordinate and
@@ -587,7 +587,7 @@ public class ECKey {
      * @param       compressed          Whether or not the original public key was compressed
      * @return      An ECKey containing only the public part, or null if recovery wasn't possible
      */
-    private static ECKey recoverFromSignature(int recID, ECDSASignature sig, BigInteger e, boolean compressed) {
+    protected static ECKey recoverFromSignature(int recID, ECDSASignature sig, BigInteger e, boolean compressed) {
         BigInteger n = ecParams.getN();
         BigInteger i = BigInteger.valueOf((long)recID / 2);
         BigInteger x = sig.getR().add(i.multiply(n));

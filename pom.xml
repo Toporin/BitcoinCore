@@ -116,5 +116,10 @@
             <version>${bouncycastle.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.satochip</groupId>
+            <artifactId>client</artifactId>
+            <version>0.9</version>
+        </dependency>
     </dependencies>
 </project>
