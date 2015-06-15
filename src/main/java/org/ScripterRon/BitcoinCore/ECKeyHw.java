@@ -26,16 +26,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.satochip.client.CardConnector;
-import org.satochip.client.CardConnectorException;
-import org.satochip.client.JCconstants;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.util.encoders.Base64;
+import org.satochip.satochipclient.CardConnector;
+import org.satochip.satochipclient.CardConnectorException;
+import org.satochip.satochipclient.CardDataParser;
+import org.satochip.satochipclient.JCconstants;
 
-/**
- *
- * @author Baudoin
- */
 public class ECKeyHw extends ECKey{
     
     /** constants*/
@@ -274,7 +271,7 @@ public class ECKeyHw extends ECKey{
                 throw new ECException("Unable to recover public key from signature"+debug2);
             
             // The message signature consists of a header byte followed by the R and S values
-            byte[] sigData = CardConnector.toCompactSig(response, recID, this.isCompressed());
+            byte[] sigData = CardDataParser.PubKeyData.parseToCompactSig(response, recID, this.isCompressed());
             encodedSignature = new String(Base64.encode(sigData), "UTF-8");
             debug2+="compress:"+this.isCompressed+"\n sig:"+CardConnector.toString(sigData)+ "\n encoded sig:"+encodedSignature+"\n";
             
@@ -295,6 +292,8 @@ public class ECKeyHw extends ECKey{
         } catch (SignatureException ex) {
             Logger.getLogger(ECKeyHw.class.getName()).log(Level.SEVERE, null, ex);
             throw new ECException("ECException during message signing: ins:"+this.toAddress().toString()+debug2);
+        } catch (CardDataParser.CardDataParserException ex) {
+            Logger.getLogger(ECKeyHw.class.getName()).log(Level.SEVERE, null, ex);
         }
         return encodedSignature;
     }
@@ -328,44 +327,31 @@ public class ECKeyHw extends ECKey{
             // check public key consistency
             if (!Arrays.equals(pubkey, this.pubKey))
                 throw new ECException("Public key mismatch");
-            Logger.getLogger(Transaction.class.getName()).log(Level.SEVERE, "createsign: getkey:"+CardConnector.toString(pubkey));
+            Logger.getLogger(Transaction.class.getName()).log(Level.INFO, 
+                    "getpubkey:"+CardConnector.toString(pubkey));
             
             // parse the transaction
-            byte[] response = cardConnector.cardParseTransaction(contents);
             byte[] swHash = Utils.doubleDigest(contents);
-            byte[] hwHash= new byte[32];
-            System.arraycopy(response, 0, hwHash, 0, 32);
+            byte[] response = cardConnector.cardParseTransaction(contents);
+            CardDataParser.PubKeyData parser= new CardDataParser.PubKeyData(authentikey);
+            byte[] hwHash= parser.parseTxHash(response).data;//new byte[32];
+            Logger.getLogger(Transaction.class.getName()).log(Level.INFO, "recovered authentikey:{0}", CardConnector.toString(parser.authentikey));
             if (!Arrays.equals(hwHash, swHash)){
+                Logger.getLogger(Transaction.class.getName()).log(Level.SEVERE, 
+                    "Error during transaction parsing: txhashes are not consistent!"
+                    +"\n\t rawtx:"+CardConnector.toString(contents)
+                    +"\n\t hwHash:"+CardConnector.toString(hwHash)
+                    +"\n\t swHash:"+CardConnector.toString(swHash));
                 throw new ECException("Error computing tx hash");
             }
-            Logger.getLogger(Transaction.class.getName()).log(Level.FINE, 
-                    "createsign: parsetx:"+CardConnector.toString(response)
-                    +"\n hwHash:"+CardConnector.toString(hwHash));
-            
-            // recover authentikey
-            if (response.length>=34){
-                int sig_size = ((int)(response[32] & 0xff)<<8) + ((int)(response[33] & 0xff));
-                if (sig_size>0){
-                    byte[] signature= new byte[sig_size];
-                    System.arraycopy(response, 34, signature, 0, sig_size);
-                    int recID=-1;
-                    for (int i=0; i<4; i++){
-                        pubkey= recoverFromSignature(i, hwHash, signature, SINGLESHA256);
-                        if (pubkey!=null && Arrays.equals(pubkey, authentikey)){
-                            recID=i;
-                            break;
-                        }
-                    }
-                    if (recID == -1)
-                        throw new ECException("Unable to recover tx hash from signature");
-                }
-            }
-            Logger.getLogger(Transaction.class.getName()).log(Level.FINE, "createsign: authentikey:"+CardConnector.toString(pubkey));
+            Logger.getLogger(Transaction.class.getName()).log(Level.INFO, 
+                    "\n\t parsetx:"+CardConnector.toString(response)
+                    +"\n\t hwHash:"+CardConnector.toString(hwHash));
             
             // Create the signature
             byte[] signature = cardConnector.cardSignTransaction(keyref, hwHash, null);
-            Logger.getLogger(Transaction.class.getName()).log(Level.FINE, "createsign: sig:"+CardConnector.toString(signature));
-
+            Logger.getLogger(Transaction.class.getName()).log(Level.FINE, "signature:{0}", CardConnector.toString(signature));
+            
             // recover pub key from signature
             //byte[] signature= new byte[(int)response[1]+2];
             //System.arraycopy(response, 0, signature, 0, signature.length);
@@ -390,6 +376,9 @@ public class ECKeyHw extends ECKey{
                             +"\n sw12:"+ex.getSW12()
                             +"\n command:"+CardConnector.toString(ex.getCommand().getData())
                             +"\n response:"+CardConnector.toString(ex.getResponse().getData()));
+            return null;
+        } catch (org.toporin.bitcoincore.ECException ex) {
+            Logger.getLogger(ECKeyHw.class.getName()).log(Level.SEVERE, "Uneble to verify hwhash signature", ex);
             return null;
         }
     }
